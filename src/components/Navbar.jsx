@@ -1,69 +1,68 @@
--- 1. Profiles Table linked to Supabase Auth
-create table if not exists public.profiles (
-  id uuid references auth.users on delete cascade primary key,
-  email text not null,
-  is_premium boolean default false not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
+import React from 'react'
+import { BookOpen, Search, Moon, Sun, ShieldCheck, LogOut, Crown } from 'lucide-react'
 
--- 2. Official Topics Table (490 Curriculum Topics)
-create table if not exists public.topics (
-  id serial primary key,
-  block text not null, -- 'Block One' or 'Block Two'
-  department text not null, -- 'Morbid Anatomy', 'Chemical Pathology', etc.
-  code text not null,
-  title text not null,
-  is_custom boolean default false not null
-);
+export function Navbar({ user, profile, searchTerm, setSearchTerm, darkMode, setDarkMode, onLogout, onOpenUpgrade }) {
+  return (
+    <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        
+        {/* Logo & Title */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="font-bold text-slate-900 dark:text-white leading-tight">3rd MB Study Tracker</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Third MBBS Professional Curriculum</p>
+          </div>
+        </div>
 
--- 3. User Topic Progress (Tracking status, history, notes)
-create table if not exists public.user_progress (
-  id uuid default gen_random_uuid() primary key,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  topic_id integer references public.topics(id) on delete cascade not null,
-  status text check (status in ('Not Started', 'In Progress', 'Completed')) default 'Not Started' not null,
-  is_favorite boolean default false not null,
-  is_tracked boolean default false not null,
-  notes text,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  unique(user_id, topic_id)
-);
+        {/* Global Search Bar */}
+        <div className="hidden md:flex flex-1 max-w-md relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search across all 490 official lecture topics..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-blue-500 rounded-xl text-sm focus:outline-none transition-colors"
+          />
+        </div>
 
--- 4. Custom Topics Table (For Premium Users)
-create table if not exists public.custom_topics (
-  id uuid default gen_random_uuid() primary key,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  block text not null,
-  department text not null,
-  title text not null,
-  status text check (status in ('Not Started', 'In Progress', 'Completed')) default 'Not Started' not null,
-  notes text,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
+        {/* Actions & Profile */}
+        <div className="flex items-center gap-3">
+          {profile?.is_premium ? (
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-xs font-semibold border border-amber-500/20">
+              <Crown className="w-3.5 h-3.5" /> Premium Active
+            </span>
+          ) : (
+            <button
+              onClick={onOpenUpgrade}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-xs font-semibold shadow-md shadow-orange-500/20 transition-all"
+            >
+              <Crown className="w-3.5 h-3.5" /> Upgrade ₦1,000
+            </button>
+          )}
 
--- 5. Payment Audit Logs Table
-create table if not exists public.payment_logs (
-  id uuid default gen_random_uuid() primary key,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  reference text unique not null,
-  amount numeric not null,
-  status text not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
+          {/* Theme Toggle */}
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            title="Toggle Theme"
+          >
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
 
--- Enable RLS Security
-alter table public.profiles enable row level security;
-alter table public.user_progress enable row level security;
-alter table public.custom_topics enable row level security;
-alter table public.payment_logs enable row level security;
-
--- Policies
-create policy "Public profiles are viewable by everyone." on public.profiles for select using (true);
-create policy "Users can update own profile." on public.profiles for update using (auth.uid() = id);
-
-create policy "Users can view own progress." on public.user_progress for select using (auth.uid() = user_id);
-create policy "Users can insert own progress." on public.user_progress for insert with check (auth.uid() = user_id);
-create policy "Users can update own progress." on public.user_progress for update using (auth.uid() = user_id);
-
-create policy "Users can manage own custom topics." on public.custom_topics for all using (auth.uid() = user_id);
-create policy "Users can view own payment logs." on public.payment_logs for select using (auth.uid() = user_id);
+          {/* Logout */}
+          <button
+            onClick={onLogout}
+            className="p-2 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+            title="Log out"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    </header>
+  )
+}
