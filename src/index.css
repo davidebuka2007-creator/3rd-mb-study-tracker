@@ -1,28 +1,299 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ================================================================= */
+/* 3RD MB STUDY TRACKER - M1/S1 INSPIRED PROFESSIONAL THEME          */
+/* ================================================================= */
 
-@layer base {
-  * {
-    border-color: theme('colors.slate.200');
-  }
-  .dark * {
-    border-color: theme('colors.slate.800');
-  }
+:root {
+  --navy-header: #0B132B;
+  --teal-primary: #00A896;
+  --teal-hover: #028090;
+  --bg-light: #F8F9FA;
+  --card-bg: #FFFFFF;
+  --text-main: #212529;
+  --text-muted: #6C757D;
+  --border-color: #E9ECEF;
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
 }
 
-/* Custom scrollbar for mobile touch smoothness */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
-::-webkit-scrollbar-track {
+
+body {
+  background-color: var(--bg-light);
+  color: var(--text-main);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Professional Header */
+.app-header {
+  background-color: var(--navy-header);
+  color: #FFFFFF;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.header-brand h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.header-brand p {
+  font-size: 0.75rem;
+  color: #A5B4FC;
+  margin-top: 2px;
+}
+
+.upgrade-btn {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+}
+
+/* Dashboard Cards & Layout */
+.dashboard-container {
+  padding: 16px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding-bottom: 90px;
+}
+
+.welcome-card {
+  background: linear-gradient(135deg, var(--navy-header), #1E293B);
+  color: white;
+  padding: 24px 20px;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-md);
+}
+
+.welcome-card h2 {
+  font-size: 1.35rem;
+  margin-bottom: 6px;
+}
+
+.welcome-card p {
+  font-size: 0.85rem;
+  color: #94A3B8;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+/* Continue Study Section */
+.continue-study-card {
+  background-color: var(--navy-header);
+  border-left: 4px solid var(--teal-primary);
+  color: white;
+  padding: 18px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-md);
+}
+
+.continue-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--teal-primary);
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.continue-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.continue-btn {
+  background-color: var(--teal-primary);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Progress Section & Percentage Bar */
+.progress-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.progress-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.progress-percentage {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--teal-primary);
+}
+
+.progress-bar-bg {
+  background-color: var(--border-color);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress-bar-fill {
+  background-color: var(--teal-primary);
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.progress-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.stat-box span {
+  display: block;
+}
+
+.stat-num {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* Topic Card & Segmented Controls */
+.topic-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+.topic-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.dept-badge {
+  background-color: #E2E8F0;
+  color: #334155;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.topic-code {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.topic-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 12px;
+  line-height: 1.35;
+}
+
+/* Segmented Status Pill Controls (Not Started | In Progress | Done) */
+.status-segments {
+  display: flex;
+  background-color: var(--bg-light);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.status-segment-btn {
+  flex: 1;
   background: transparent;
+  border: none;
+  padding: 6px 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
 }
-::-webkit-scrollbar-thumb {
-  background: theme('colors.slate.300');
-  border-radius: 9999px;
+
+.status-segment-btn.active-not-started {
+  background-color: #E2E8F0;
+  color: #475569;
 }
-.dark ::-webkit-scrollbar-thumb {
-  background: theme('colors.slate.700');
+
+.status-segment-btn.active-in-progress {
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+
+.status-segment-btn.active-done {
+  background-color: #D1FAE5;
+  color: #059669;
+}
+
+/* Drive Folder Link Button */
+.drive-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #EFF6FF;
+  color: #2563EB;
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-top: 8px;
 }
