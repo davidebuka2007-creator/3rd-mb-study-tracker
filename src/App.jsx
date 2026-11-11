@@ -2,34 +2,71 @@ import React, { useState, useEffect } from 'react';
 import { OFFICIAL_SYLLABUS } from './data/syllabus';
 
 export default function App() {
-  // State management for user progress stored locally (or synced)
+  // State management for user progress stored in localStorage
   const [userProgress, setUserProgress] = useState(() => {
     const saved = localStorage.getItem('3rd_mb_progress');
     return saved ? JSON.parse(saved) : {};
   });
 
-  const [activeTab, setActiveTab] = useState('home'); // 'home', 'block1', 'block2', 'saved'
+  const [activeTab, setActiveTab] = useState('home'); // 'home', 'block1', 'block2', 'analytics'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
 
-  // Save progress changes to localStorage
+  // Pomodoro Timer State
+  const [timerMinutes, setTimerMinutes] = useState(25);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [timerMode, setTimerMode] = useState('study'); // 'study' (25m) or 'break' (5m)
+
+  // Save progress changes automatically
   useEffect(() => {
     localStorage.setItem('3rd_mb_progress', JSON.stringify(userProgress));
   }, [userProgress]);
 
+  // Pomodoro Timer Engine
+  useEffect(() => {
+    let interval = null;
+    if (isTimerRunning) {
+      interval = setInterval(() => {
+        if (timerSeconds > 0) {
+          setTimerSeconds(timerSeconds - 1);
+        } else if (timerMinutes > 0) {
+          setTimerMinutes(timerMinutes - 1);
+          setTimerSeconds(59);
+        } else {
+          setIsTimerRunning(false);
+          alert(timerMode === 'study' ? '🎉 Study session complete! Take a 5-minute break.' : '⏰ Break finished! Ready to tackle more topics?');
+        }
+      }, 1000);
+    } else {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning, timerMinutes, timerSeconds, timerMode]);
+
+  const toggleTimer = () => setIsTimerRunning(!isTimerRunning);
+
+  const resetTimer = (mode = 'study') => {
+    setIsTimerRunning(false);
+    setTimerMode(mode);
+    setTimerMinutes(mode === 'study' ? 25 : 5);
+    setTimerSeconds(0);
+  };
+
   // Handle status changes ('Not Started' | 'In Progress' | 'Done')
   const handleStatusChange = (topicId, status) => {
+    const today = new Date().toISOString().split('T')[0];
     setUserProgress(prev => ({
       ...prev,
       [topicId]: {
         ...(prev[topicId] || {}),
         status,
-        lastUpdated: new Date().toLocaleDateString()
+        lastUpdated: today
       }
     }));
   };
 
-  // Calculations for Progress Percentages
+  // Calculations for Progress & Percentages
   const totalTopics = OFFICIAL_SYLLABUS.length;
   
   const getStatusCount = (status) => {
@@ -39,8 +76,19 @@ export default function App() {
   const doneCount = getStatusCount('Done');
   const inProgressCount = getStatusCount('In Progress');
   const notStartedCount = totalTopics - (doneCount + inProgressCount);
-  
   const overallPercentage = Math.round((doneCount / totalTopics) * 100) || 0;
+
+  // Analytics: Departmental Calculations
+  const getDeptStats = (deptName) => {
+    const deptTopics = OFFICIAL_SYLLABUS.filter(t => t.department === deptName);
+    if (deptTopics.length === 0) return { count: 0, done: 0, percent: 0 };
+    const done = deptTopics.filter(t => userProgress[t.id]?.status === 'Done').length;
+    return {
+      count: deptTopics.length,
+      done,
+      percent: Math.round((done / deptTopics.length) * 100) || 0
+    };
+  };
 
   // Find most recently updated topic for "Continue Study"
   const trackedTopicsArray = Object.keys(userProgress).map(id => ({
@@ -56,8 +104,7 @@ export default function App() {
     const matchesTab = 
       activeTab === 'home' ||
       (activeTab === 'block1' && topic.block === 'Block One') ||
-      (activeTab === 'block2' && topic.block === 'Block Two') ||
-      (activeTab === 'saved' && userProgress[topic.id]?.saved);
+      (activeTab === 'block2' && topic.block === 'Block Two');
 
     const matchesDept = selectedDept === 'All' || topic.department === selectedDept;
     
@@ -71,30 +118,58 @@ export default function App() {
 
   return (
     <div className="app-wrapper">
-      {/* Professional Navy Header */}
+      {/* Dark Navy Header */}
       <header className="app-header">
         <div className="header-brand">
           <h1>3rd MB Study Tracker</h1>
           <p>Third MBBS Curriculum • UNTH</p>
         </div>
-        <button className="upgrade-btn" onClick={() => alert('Paystack Premium Integration Coming Up!')}>
+        <button className="upgrade-btn" onClick={() => alert('Paystack Premium Integration (₦1,000) setup ready.')}>
           👑 Upgrade ₦1,000
         </button>
       </header>
 
-      {/* Main Container */}
+      {/* Main Content Area */}
       <main className="dashboard-container">
         
-        {/* HOME / DASHBOARD VIEW */}
+        {/* DASHBOARD VIEW */}
         {activeTab === 'home' && (
           <div>
-            {/* Welcome Card */}
+            {/* Welcome Banner */}
             <div className="welcome-card">
               <h2>Welcome back, Doctor!</h2>
               <p>Master all 490 official Third MBBS curriculum topics seamlessly across Block One (258) and Block Two (232).</p>
             </div>
 
-            {/* Continue Study Section */}
+            {/* Pomodoro Timer Widget */}
+            <div className="progress-card" style={{ textAlign: 'center', marginBottom: '16px' }}>
+              <span className="continue-label" style={{ marginBottom: '6px' }}>⏱️ Pomodoro Study Timer</span>
+              <div style={{ fontSize: '2.2rem', fontWeight: '800', color: '#0B132B', margin: '4px 0' }}>
+                {String(timerMinutes).padStart(2, '0')}:{String(timerSeconds).padStart(2, '0')}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '10px' }}>
+                <button 
+                  onClick={toggleTimer}
+                  style={{ background: isTimerRunning ? '#EF4444' : '#00A896', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
+                >
+                  {isTimerRunning ? 'Pause' : 'Start Session'}
+                </button>
+                <button 
+                  onClick={() => resetTimer('study')}
+                  style={{ background: '#E2E8F0', color: '#334155', border: 'none', padding: '8px 12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  25m Study
+                </button>
+                <button 
+                  onClick={() => resetTimer('break')}
+                  style={{ background: '#E2E8F0', color: '#334155', border: 'none', padding: '8px 12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  5m Break
+                </button>
+              </div>
+            </div>
+
+            {/* Continue Study Card */}
             <div className="continue-study-card">
               <span className="continue-label">Continue Study</span>
               <div className="continue-title">{continueTopic.title}</div>
@@ -109,7 +184,7 @@ export default function App() {
               </button>
             </div>
 
-            {/* Overall Progress Card */}
+            {/* Overall Progress & Live Percentage Bar */}
             <div className="progress-card">
               <div className="progress-header">
                 <span className="progress-title">Overall Curriculum Progress</span>
@@ -134,42 +209,70 @@ export default function App() {
               </div>
             </div>
 
-            {/* Quick Navigation Buttons */}
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '16px'}}>
-              <button 
-                onClick={() => setActiveTab('block1')} 
-                style={{padding: '14px', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', cursor: 'pointer'}}
-              >
-                📖 Block One (258 Topics)
-              </button>
-              <button 
-                onClick={() => setActiveTab('block2')} 
-                style={{padding: '14px', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', cursor: 'pointer'}}
-              >
-                📚 Block Two (232 Topics)
-              </button>
+            {/* NEW: Departmental Analytics Overview */}
+            <div className="progress-card" style={{ marginTop: '16px' }}>
+              <span className="progress-title" style={{ display: 'block', marginBottom: '12px' }}>📊 Department Mastery Breakdown</span>
+              {[
+                { name: 'Morbid Anatomy', data: getDeptStats('Morbid Anatomy') },
+                { name: 'Chemical Pathology', data: getDeptStats('Chemical Pathology') },
+                { name: 'Medical Microbiology', data: getDeptStats('Medical Microbiology') },
+                { name: 'Haematology', data: getDeptStats('Haematology') },
+                { name: 'Pharmacology', data: getDeptStats('Pharmacology') },
+              ].map((dept, idx) => (
+                <div key={idx} style={{ marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: '600', marginBottom: '4px' }}>
+                    <span>{dept.name}</span>
+                    <span>{dept.data.done}/{dept.data.count} ({dept.data.percent}%)</span>
+                  </div>
+                  <div className="progress-bar-bg" style={{ height: '6px' }}>
+                    <div className="progress-bar-fill" style={{ width: `${dept.data.percent}%`, backgroundColor: '#028090' }}></div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* CURRICULUM LIST VIEW (Block One / Block Two / Saved) */}
+        {/* CURRICULUM LIST VIEW (Block 1 & Block 2) */}
         {activeTab !== 'home' && (
           <div>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px'}}>
-              <h2 style={{fontSize: '1.2rem', fontWeight: '700'}}>
-                {activeTab === 'block1' && 'Block One Curriculum (258 Topics)'}
-                {activeTab === 'block2' && 'Block Two Curriculum (232 Topics)'}
-                {activeTab === 'saved' && 'Saved Topics'}
+              <h2 style={{fontSize: '1.1rem', fontWeight: '700'}}>
+                {activeTab === 'block1' && 'Block One (258 Topics)'}
+                {activeTab === 'block2' && 'Block Two (232 Topics)'}
               </h2>
               <button 
                 onClick={() => setActiveTab('home')}
                 style={{background: 'none', border: 'none', color: '#00A896', fontWeight: '600', cursor: 'pointer'}}
               >
-                ← Back to Home
+                ← Home
               </button>
             </div>
 
-            {/* Search Input */}
+            {/* Department Filter Buttons */}
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '10px' }}>
+              {['All', 'Morbid Anatomy', 'Chemical Pathology', 'Medical Microbiology', 'Haematology', 'Pharmacology'].map(dept => (
+                <button
+                  key={dept}
+                  onClick={() => setSelectedDept(dept)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    border: '1px solid #CBD5E1',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    whiteSpace: 'nowrap',
+                    background: selectedDept === dept ? '#0B132B' : 'white',
+                    color: selectedDept === dept ? 'white' : '#475569',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {dept}
+                </button>
+              ))}
+            </div>
+
+            {/* Search Bar */}
             <input 
               type="text" 
               placeholder="Search by topic title or code..." 
@@ -181,15 +284,15 @@ export default function App() {
                 borderRadius: '10px',
                 border: '1px solid #CBD5E1',
                 marginBottom: '14px',
-                fontSize: '0.9rem',
+                fontSize: '0.85rem',
                 backgroundColor: 'white'
               }}
             />
 
-            {/* Topic Cards List */}
+            {/* Topic Cards */}
             <div>
               {filteredTopics.length === 0 ? (
-                <p style={{textAlign: 'center', color: '#64748B', padding: '30px'}}>No topics found matching your search.</p>
+                <p style={{textAlign: 'center', color: '#64748B', padding: '30px'}}>No topics found.</p>
               ) : (
                 filteredTopics.map(topic => {
                   const currentStatus = userProgress[topic.id]?.status || 'Not Started';
@@ -202,7 +305,7 @@ export default function App() {
                       </div>
                       <div className="topic-name">{topic.title}</div>
                       
-                      {/* Segmented Status Controls */}
+                      {/* Segmented Status Buttons */}
                       <div className="status-segments">
                         <button 
                           className={`status-segment-btn ${currentStatus === 'Not Started' ? 'active-not-started' : ''}`}
@@ -224,7 +327,7 @@ export default function App() {
                         </button>
                       </div>
 
-                      {/* Google Drive Folder Link Button */}
+                      {/* Google Drive Link */}
                       {topic.driveUrl && (
                         <a href={topic.driveUrl} target="_blank" rel="noopener noreferrer" className="drive-link-btn">
                           📁 Open Class Drive Folder
@@ -240,7 +343,7 @@ export default function App() {
 
       </main>
 
-      {/* Bottom Navigation Bar */}
+      {/* Fixed Bottom Navigation */}
       <nav style={{
         position: 'fixed',
         bottom: 0,
