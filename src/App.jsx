@@ -2,26 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { OFFICIAL_SYLLABUS } from './data/syllabus';
 
 export default function App() {
-  // State management for user progress stored in localStorage
   const [userProgress, setUserProgress] = useState(() => {
     const saved = localStorage.getItem('3rd_mb_progress');
     return saved ? JSON.parse(saved) : {};
   });
 
-  const [activeTab, setActiveTab] = useState('home'); // 'home', 'block1', 'block2', 'analytics'
+  const [isPremium, setIsPremium] = useState(() => {
+    return localStorage.getItem('3rd_mb_is_premium') === 'true';
+  });
+
+  const [activeTab, setActiveTab] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [payerName, setPayerName] = useState('');
 
   // Pomodoro Timer State
   const [timerMinutes, setTimerMinutes] = useState(25);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [timerMode, setTimerMode] = useState('study'); // 'study' (25m) or 'break' (5m)
+  const [timerMode, setTimerMode] = useState('study');
 
-  // Save progress changes automatically
   useEffect(() => {
     localStorage.setItem('3rd_mb_progress', JSON.stringify(userProgress));
   }, [userProgress]);
+
+  useEffect(() => {
+    localStorage.setItem('3rd_mb_is_premium', isPremium);
+  }, [isPremium]);
 
   // Pomodoro Timer Engine
   useEffect(() => {
@@ -55,6 +63,14 @@ export default function App() {
 
   // Handle status changes ('Not Started' | 'In Progress' | 'Done')
   const handleStatusChange = (topicId, status) => {
+    const trackedCount = Object.values(userProgress).filter(p => p.status && p.status !== 'Not Started').length;
+    const isCurrentlyTracked = userProgress[topicId]?.status && userProgress[topicId]?.status !== 'Not Started';
+
+    if (!isPremium && !isCurrentlyTracked && trackedCount >= 10 && status !== 'Not Started') {
+      alert('⚠️ Free Plan Limit Reached! You can track up to 10 topics. Upgrade to Premium for ₦1,000 to unlock all 490 topics.');
+      return;
+    }
+
     const today = new Date().toISOString().split('T')[0];
     setUserProgress(prev => ({
       ...prev,
@@ -78,7 +94,6 @@ export default function App() {
   const notStartedCount = totalTopics - (doneCount + inProgressCount);
   const overallPercentage = Math.round((doneCount / totalTopics) * 100) || 0;
 
-  // Analytics: Departmental Calculations
   const getDeptStats = (deptName) => {
     const deptTopics = OFFICIAL_SYLLABUS.filter(t => t.department === deptName);
     if (deptTopics.length === 0) return { count: 0, done: 0, percent: 0 };
@@ -90,7 +105,6 @@ export default function App() {
     };
   };
 
-  // Find most recently updated topic for "Continue Study"
   const trackedTopicsArray = Object.keys(userProgress).map(id => ({
     id: Number(id),
     ...userProgress[id]
@@ -99,7 +113,6 @@ export default function App() {
   const lastStudiedId = trackedTopicsArray.length > 0 ? trackedTopicsArray[0].id : null;
   const continueTopic = OFFICIAL_SYLLABUS.find(t => t.id === lastStudiedId) || OFFICIAL_SYLLABUS[0];
 
-  // Filter topics based on active tab, search, and department
   const filteredTopics = OFFICIAL_SYLLABUS.filter(topic => {
     const matchesTab = 
       activeTab === 'home' ||
@@ -124,21 +137,119 @@ export default function App() {
           <h1>3rd MB Study Tracker</h1>
           <p>Third MBBS Curriculum • UNTH</p>
         </div>
-        <button className="upgrade-btn" onClick={() => alert('Paystack Premium Integration (₦1,000) setup ready.')}>
-          👑 Upgrade ₦1,000
-        </button>
+        {!isPremium ? (
+          <button className="upgrade-btn" onClick={() => setShowTransferModal(true)}>
+            👑 Upgrade ₦1,000
+          </button>
+        ) : (
+          <span style={{ fontSize: '0.75rem', background: '#059669', color: 'white', padding: '4px 8px', borderRadius: '6px', fontWeight: '700' }}>
+            ✨ Premium Active
+          </span>
+        )}
       </header>
+
+      {/* PALMPAY BANK TRANSFER MODAL */}
+      {showTransferModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(11, 19, 43, 0.85)', zIndex: 2000,
+          display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: 'white', padding: '24px', borderRadius: '16px',
+            maxWidth: '380px', width: '100%', color: '#1E293B', boxShadow: '0 15px 30px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: '700', marginBottom: '8px', color: '#0B132B' }}>
+              💳 Instant PalmPay Transfer (₦1,000)
+            </h3>
+            <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '14px', lineHeight: '1.4' }}>
+              Transfer <b>₦1,000</b> from your bank app balance, enter your name below, and tap WhatsApp to send proof for instant activation!
+            </p>
+
+            <div style={{ background: '#F8F9FA', padding: '12px', borderRadius: '10px', marginBottom: '12px', border: '1px solid #E2E8F0' }}>
+              <p style={{ fontSize: '0.75rem', color: '#64748B' }}>Bank Name:</p>
+              <p style={{ fontSize: '0.9rem', fontWeight: '700', marginBottom: '6px' }}>Palmpay</p>
+              
+              <p style={{ fontSize: '0.75rem', color: '#64748B' }}>Account Number:</p>
+              <p style={{ fontSize: '1.15rem', fontWeight: '800', color: '#00A896', marginBottom: '6px', letterSpacing: '0.5px' }}>8106624261</p>
+              
+              <p style={{ fontSize: '0.75rem', color: '#64748B' }}>Account Name:</p>
+              <p style={{ fontSize: '0.85rem', fontWeight: '700' }}>Okonkwo David Chukwuebuka</p>
+            </div>
+
+            {/* Input for user name */}
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '4px' }}>
+                Your Full Name / Email:
+              </label>
+              <input 
+                type="text" 
+                placeholder="e.g. Dr. Chiamaka"
+                value={payerName}
+                onChange={(e) => setPayerName(e.target.value)}
+                style={{
+                  width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <a 
+                href={`https://wa.me/2348106624261?text=${encodeURIComponent(`Hello David, I have made my ₦1,000 transfer to your Palmpay account for the 3rd MB Study Tracker. Here is my name: ${payerName || 'Student'}. Please send my activation code!`)}`}
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{
+                  background: '#25D366', color: 'white', textAlign: 'center', padding: '12px',
+                  borderRadius: '8px', fontWeight: '700', textDecoration: 'none', fontSize: '0.85rem',
+                  boxShadow: '0 4px 10px rgba(37, 211, 102, 0.3)'
+                }}
+              >
+                💬 Send Proof & Get Code on WhatsApp
+              </a>
+
+              <button 
+                onClick={() => {
+                  const code = prompt("Enter your activation code from David:");
+                  if (code === "unth2026") {
+                    setIsPremium(true);
+                    setShowTransferModal(false);
+                    alert("✨ Premium unlocked successfully!");
+                  } else if (code) {
+                    alert("❌ Invalid activation code.");
+                  }
+                }}
+                style={{
+                  background: '#F1F5F9', border: '1px solid #CBD5E1', color: '#334155', padding: '10px',
+                  borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '0.8rem'
+                }}
+              >
+                🔑 Have an activation code? Enter it
+              </button>
+
+              <button 
+                onClick={() => setShowTransferModal(false)}
+                style={{
+                  background: 'none', border: 'none', color: '#64748B', padding: '8px',
+                  fontWeight: '600', cursor: 'pointer', fontSize: '0.75rem'
+                }}
+              >
+                Close Window
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="dashboard-container">
         
-        {/* DASHBOARD VIEW */}
         {activeTab === 'home' && (
           <div>
-            {/* Welcome Banner */}
             <div className="welcome-card">
               <h2>Welcome back, Doctor!</h2>
               <p>Master all 490 official Third MBBS curriculum topics seamlessly across Block One (258) and Block Two (232).</p>
+              {isPremium && <p style={{ color: '#34D399', fontWeight: '600', marginTop: '6px' }}>✓ Full Unlimited Access Unlocked</p>}
             </div>
 
             {/* Pomodoro Timer Widget */}
@@ -184,7 +295,7 @@ export default function App() {
               </button>
             </div>
 
-            {/* Overall Progress & Live Percentage Bar */}
+            {/* Overall Progress */}
             <div className="progress-card">
               <div className="progress-header">
                 <span className="progress-title">Overall Curriculum Progress</span>
@@ -209,7 +320,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* NEW: Departmental Analytics Overview */}
+            {/* Departmental Analytics */}
             <div className="progress-card" style={{ marginTop: '16px' }}>
               <span className="progress-title" style={{ display: 'block', marginBottom: '12px' }}>📊 Department Mastery Breakdown</span>
               {[
@@ -233,7 +344,6 @@ export default function App() {
           </div>
         )}
 
-        {/* CURRICULUM LIST VIEW (Block 1 & Block 2) */}
         {activeTab !== 'home' && (
           <div>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px'}}>
@@ -249,7 +359,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Department Filter Buttons */}
             <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '10px' }}>
               {['All', 'Morbid Anatomy', 'Chemical Pathology', 'Medical Microbiology', 'Haematology', 'Pharmacology'].map(dept => (
                 <button
@@ -272,7 +381,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* Search Bar */}
             <input 
               type="text" 
               placeholder="Search by topic title or code..." 
@@ -289,7 +397,6 @@ export default function App() {
               }}
             />
 
-            {/* Topic Cards */}
             <div>
               {filteredTopics.length === 0 ? (
                 <p style={{textAlign: 'center', color: '#64748B', padding: '30px'}}>No topics found.</p>
@@ -305,7 +412,6 @@ export default function App() {
                       </div>
                       <div className="topic-name">{topic.title}</div>
                       
-                      {/* Segmented Status Buttons */}
                       <div className="status-segments">
                         <button 
                           className={`status-segment-btn ${currentStatus === 'Not Started' ? 'active-not-started' : ''}`}
@@ -327,7 +433,6 @@ export default function App() {
                         </button>
                       </div>
 
-                      {/* Google Drive Link */}
                       {topic.driveUrl && (
                         <a href={topic.driveUrl} target="_blank" rel="noopener noreferrer" className="drive-link-btn">
                           📁 Open Class Drive Folder
@@ -343,38 +448,5 @@ export default function App() {
 
       </main>
 
-      {/* Fixed Bottom Navigation */}
       <nav style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'white',
-        borderTop: '1px solid #E2E8F0',
-        display: 'flex',
-        justifyContent: 'space-around',
-        padding: '10px 0',
-        zIndex: 1000
-      }}>
-        <button 
-          onClick={() => setActiveTab('home')} 
-          style={{background: 'none', border: 'none', fontSize: '0.75rem', fontWeight: activeTab === 'home' ? '700' : '400', color: activeTab === 'home' ? '#00A896' : '#64748B', cursor: 'pointer'}}
-        >
-          🏠 Home
-        </button>
-        <button 
-          onClick={() => setActiveTab('block1')} 
-          style={{background: 'none', border: 'none', fontSize: '0.75rem', fontWeight: activeTab === 'block1' ? '700' : '400', color: activeTab === 'block1' ? '#00A896' : '#64748B', cursor: 'pointer'}}
-        >
-          📖 Block 1
-        </button>
-        <button 
-          onClick={() => setActiveTab('block2')} 
-          style={{background: 'none', border: 'none', fontSize: '0.75rem', fontWeight: activeTab === 'block2' ? '700' : '400', color: activeTab === 'block2' ? '#00A896' : '#64748B', cursor: 'pointer'}}
-        >
-          📚 Block 2
-        </button>
-      </nav>
-    </div>
-  );
-}
+    
