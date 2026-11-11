@@ -1,5 +1,5 @@
 /* ================================================================= */
-/* 3RD MB STUDY TRACKER - 9.5/10 SLEEK MEDICAL DESIGN SYSTEM         */
+/* 3RD MB STUDY TRACKER - 9.5/10 SLEEK MOBILE-RESPONSIVE DESIGN      */
 /* ================================================================= */
 
 :root {
@@ -7,7 +7,6 @@
   --navy-surface: #111A33;
   --teal-primary: #00A896;
   --teal-accent: #028090;
-  --teal-glow: rgba(0, 168, 150, 0.25);
   --teal-light: #E6F7F5;
   --bg-main: #F8FAFC;
   --card-bg: #FFFFFF;
@@ -16,7 +15,6 @@
   --border-light: #E2E8F0;
   --shadow-sm: 0 2px 8px rgba(7, 13, 30, 0.04);
   --shadow-md: 0 8px 24px rgba(7, 13, 30, 0.08);
-  --shadow-glow: 0 0 20px rgba(0, 168, 150, 0.15);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -114,11 +112,6 @@ body {
   font-size: 0.78rem;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
-  transition: transform 0.2s ease;
-}
-
-.upgrade-btn:active {
-  transform: scale(0.96);
 }
 
 .dashboard-container {
@@ -134,8 +127,6 @@ body {
   border-radius: var(--radius-lg);
   margin-bottom: 16px;
   box-shadow: var(--shadow-md);
-  position: relative;
-  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -204,7 +195,7 @@ body {
   box-shadow: 0 4px 12px rgba(0, 168, 150, 0.3);
 }
 
-/* Progress Section Styles (Restored & Refined) */
+/* Progress Section (Fully Mobile Optimized) */
 .progress-header {
   display: flex;
   justify-content: space-between;
@@ -226,7 +217,7 @@ body {
 
 .progress-bar-bg {
   background-color: var(--bg-main);
-  height: 9px;
+  height: 10px;
   border-radius: 6px;
   overflow: hidden;
   margin-bottom: 14px;
