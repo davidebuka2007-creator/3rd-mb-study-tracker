@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { OFFICIAL_SYLLABUS } from './data/syllabusData';
+import { OFFICIAL_SYLLABUS } from './data/syllabus';
 
 export default function App() {
   // State management for user progress stored locally (or synced)
