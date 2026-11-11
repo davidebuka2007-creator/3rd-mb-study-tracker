@@ -204,6 +204,72 @@ body {
   box-shadow: 0 4px 12px rgba(0, 168, 150, 0.3);
 }
 
+/* Progress Section Styles (Restored & Refined) */
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.progress-title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+.progress-percentage {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--teal-primary);
+}
+
+.progress-bar-bg {
+  background-color: var(--bg-main);
+  height: 9px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  border: 1px solid var(--border-light);
+}
+
+.progress-bar-fill {
+  background: linear-gradient(90deg, var(--teal-primary), var(--teal-accent));
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  text-align: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+
+.stat-box {
+  padding: 8px 4px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-light);
+}
+
+.stat-num {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.stat-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-top: 3px;
+  display: block;
+  text-transform: uppercase;
+}
+
 /* Teaser Lock Overlay */
 .teaser-locked-overlay {
   position: relative;
@@ -282,6 +348,7 @@ body {
   border-radius: var(--radius-sm);
   padding: 3px;
   gap: 3px;
+  border: 1px solid var(--border-light);
 }
 
 .status-segment-btn {
