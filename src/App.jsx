@@ -1,323 +1,277 @@
-import React, { useState, useEffect } from 'react'
-import { supabase } from './supabaseClient'
-import { Auth } from './components/Auth'
-import { Navbar } from './components/Navbar'
-import { Sidebar } from './components/Sidebar'
-import { MobileNav } from './components/MobileNav'
-import { OFFICIAL_SYLLABUS } from './data/syllabus'
-import { LayoutDashboard, Layers, Star, Clock, FileText, BookMarked, Settings, Crown, CheckCircle2, Circle, AlertCircle } from 'lucide-react'
+import React, { useState, useEffect } from 'react';
+import { OFFICIAL_SYLLABUS } from './data/syllabusData';
 
 export default function App() {
-  const [session, setSession] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [currentTab, setCurrentTab] = useState('dashboard')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [darkMode, setDarkMode] = useState(false)
-  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
-  
-  // User tracking & progress state
-  const [userProgress, setUserProgress] = useState({}) // { topicId: { status, is_tracked, is_favorite } }
+  // State management for user progress stored locally (or synced)
+  const [userProgress, setUserProgress] = useState(() => {
+    const saved = localStorage.getItem('3rd_mb_progress');
+    return saved ? JSON.parse(saved) : {};
+  });
 
+  const [activeTab, setActiveTab] = useState('home'); // 'home', 'block1', 'block2', 'saved'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDept, setSelectedDept] = useState('All');
+
+  // Save progress changes to localStorage
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      if (session) {
-        fetchProfile(session.user.id)
-        fetchUserProgress(session.user.id)
-      } else {
-        setLoading(false)
+    localStorage.setItem('3rd_mb_progress', JSON.stringify(userProgress));
+  }, [userProgress]);
+
+  // Handle status changes ('Not Started' | 'In Progress' | 'Done')
+  const handleStatusChange = (topicId, status) => {
+    setUserProgress(prev => ({
+      ...prev,
+      [topicId]: {
+        ...(prev[topicId] || {}),
+        status,
+        lastUpdated: new Date().toLocaleDateString()
       }
-    })
+    }));
+  };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      if (session) {
-        fetchProfile(session.user.id)
-        fetchUserProgress(session.user.id)
-      } else {
-        setProfile(null)
-        setUserProgress({})
-        setLoading(false)
-      }
-    })
+  // Calculations for Progress Percentages
+  const totalTopics = OFFICIAL_SYLLABUS.length;
+  
+  const getStatusCount = (status) => {
+    return OFFICIAL_SYLLABUS.filter(t => (userProgress[t.id]?.status || 'Not Started') === status).length;
+  };
 
-    return () => subscription.unsubscribe()
-  }, [])
+  const doneCount = getStatusCount('Done');
+  const inProgressCount = getStatusCount('In Progress');
+  const notStartedCount = totalTopics - (doneCount + inProgressCount);
+  
+  const overallPercentage = Math.round((doneCount / totalTopics) * 100) || 0;
 
-  const fetchProfile = async (userId) => {
-    try {
-      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
-      if (data) setProfile(data)
-    } catch (err) {
-      console.error('Error fetching profile:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Find most recently updated topic for "Continue Study"
+  const trackedTopicsArray = Object.keys(userProgress).map(id => ({
+    id: Number(id),
+    ...userProgress[id]
+  })).sort((a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated));
 
-  const fetchUserProgress = async (userId) => {
-    try {
-      const { data } = await supabase.from('user_progress').select('*').eq('user_id', userId)
-      if (data) {
-        const progressMap = {}
-        data.forEach(item => {
-          progressMap[item.topic_id] = {
-            status: item.status,
-            is_tracked: item.is_tracked,
-            is_favorite: item.is_favorite,
-            notes: item.notes
-          }
-        })
-        setUserProgress(progressMap)
-      }
-    } catch (err) {
-      console.error('Error fetching progress:', err)
-    }
-  }
+  const lastStudiedId = trackedTopicsArray.length > 0 ? trackedTopicsArray[0].id : null;
+  const continueTopic = OFFICIAL_SYLLABUS.find(t => t.id === lastStudiedId) || OFFICIAL_SYLLABUS[0];
 
-  const toggleTrackTopic = async (topicId) => {
-    if (!session) return
-    const current = userProgress[topicId] || { status: 'Not Started', is_tracked: false, is_favorite: false }
-    const newTrackedState = !current.is_tracked
+  // Filter topics based on active tab, search, and department
+  const filteredTopics = OFFICIAL_SYLLABUS.filter(topic => {
+    const matchesTab = 
+      activeTab === 'home' ||
+      (activeTab === 'block1' && topic.block === 'Block One') ||
+      (activeTab === 'block2' && topic.block === 'Block Two') ||
+      (activeTab === 'saved' && userProgress[topic.id]?.saved);
 
-    // Check Free limit (max 10 active tracked topics)
-    if (newTrackedState && !profile?.is_premium) {
-      const trackedCount = Object.values(userProgress).filter(p => p.is_tracked).length
-      if (trackedCount >= 10) {
-        setUpgradeModalOpen(true)
-        return
-      }
-    }
+    const matchesDept = selectedDept === 'All' || topic.department === selectedDept;
+    
+    const matchesSearch = 
+      topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      topic.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      topic.department.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const updatedProgress = { ...current, is_tracked: newTrackedState }
-    setUserProgress({ ...userProgress, [topicId]: updatedProgress })
-
-    // Upsert to Supabase
-    await supabase.from('user_progress').upsert({
-      user_id: session.user.id,
-      topic_id: topicId,
-      status: updatedProgress.status,
-      is_tracked: updatedProgress.is_tracked,
-      is_favorite: updatedProgress.is_favorite
-    }, { onConflict: 'user_id,topic_id' })
-  }
-
-  const updateTopicStatus = async (topicId, status) => {
-    if (!session) return
-    const current = userProgress[topicId] || { status: 'Not Started', is_tracked: false, is_favorite: false }
-    const updatedProgress = { ...current, status }
-    setUserProgress({ ...userProgress, [topicId]: updatedProgress })
-
-    await supabase.from('user_progress').upsert({
-      user_id: session.user.id,
-      topic_id: topicId,
-      status: updatedProgress.status,
-      is_tracked: updatedProgress.is_tracked,
-      is_favorite: updatedProgress.is_favorite
-    }, { onConflict: 'user_id,topic_id' })
-  }
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-  }
-
-  if (loading) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
-  if (!session) {
-    return <Auth onLoginSuccess={() => window.location.reload()} />
-  }
-
-  // Filter topics based on search term or active block tab
-  const filteredTopics = OFFICIAL_SYLLABUS.filter(t => {
-    const matchesSearch = t.title.toLowerCase().includes(searchTerm.toLowerCase()) || t.code.toLowerCase().includes(searchTerm.toLowerCase())
-    if (currentTab === 'block1') return t.block === 'Block One' && matchesSearch
-    if (currentTab === 'block2') return t.block === 'Block Two' && matchesSearch
-    if (currentTab === 'favourites') return userProgress[t.id]?.is_favorite && matchesSearch
-    return matchesSearch
-  })
-
-  const trackedCount = Object.values(userProgress).filter(p => p.is_tracked).length
+    return matchesTab && matchesDept && matchesSearch;
+  });
 
   return (
-    <div className={`${darkMode ? 'dark' : ''} h-full`}>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 flex flex-col">
-        
-        <Navbar 
-          user={session.user} 
-          profile={profile}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-          onLogout={handleLogout}
-          onOpenUpgrade={() => setUpgradeModalOpen(true)}
-        />
-
-        <div className="flex-1 flex overflow-hidden pb-16 lg:pb-0">
-          <Sidebar 
-            currentTab={currentTab} 
-            setCurrentTab={setCurrentTab} 
-            isPremium={profile?.is_premium}
-            onOpenUpgrade={() => setUpgradeModalOpen(true)}
-          />
-
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-            
-            {currentTab === 'dashboard' && (
-              <div className="space-y-6">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-blue-500/10">
-                  <h2 className="text-2xl sm:text-3xl font-bold">Welcome back, Doctor!</h2>
-                  <p className="text-blue-100 mt-2 text-sm max-w-xl">
-                    Master all 490 official Third MBBS curriculum topics seamlessly across Block One (258) and Block Two (232).
-                  </p>
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <button 
-                      onClick={() => setCurrentTab('block1')}
-                      className="px-4 py-2 bg-white text-blue-600 rounded-xl font-semibold text-xs shadow-md hover:bg-blue-50 transition-colors"
-                    >
-                      Open Block One (258)
-                    </button>
-                    <button 
-                      onClick={() => setCurrentTab('block2')}
-                      className="px-4 py-2 bg-blue-700/50 hover:bg-blue-700 text-white border border-white/20 rounded-xl font-semibold text-xs transition-colors"
-                    >
-                      Open Block Two (232)
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Plan & Limit</p>
-                    <h3 className="text-xl font-bold mt-2 text-slate-900 dark:text-white">
-                      {profile?.is_premium ? 'Premium (Unlimited)' : `${trackedCount} / 10 Tracked`}
-                    </h3>
-                  </div>
-                  <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Curriculum</p>
-                    <h3 className="text-xl font-bold mt-2 text-slate-900 dark:text-white">490 Official Topics</h3>
-                  </div>
-                  <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Target Audience</p>
-                    <h3 className="text-xl font-bold mt-2 text-slate-900 dark:text-white">3rd MBBS Medical Students</h3>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {(currentTab === 'block1' || currentTab === 'block2' || currentTab === 'favourites') && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold">
-                    {currentTab === 'block1' ? 'Block One Curriculum (258 Topics)' : currentTab === 'block2' ? 'Block Two Curriculum (232 Topics)' : 'Saved Favourites'}
-                  </h2>
-                  <span className="text-xs text-slate-500">{filteredTopics.length} topics shown</span>
-                </div>
-
-                <div className="space-y-3">
-                  {filteredTopics.map((topic) => {
-                    const prog = userProgress[topic.id] || { status: 'Not Started', is_tracked: false, is_favorite: false }
-                    return (
-                      <div key={topic.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-md text-[10px] font-bold">
-                              {topic.department}
-                            </span>
-                            <span className="text-xs text-slate-400 font-mono">{topic.code}</span>
-                          </div>
-                          <h4 className="font-semibold text-sm text-slate-900 dark:text-white">{topic.title}</h4>
-                        </div>
-
-                        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                          <select
-                            value={prog.status}
-                            onChange={(e) => updateTopicStatus(topic.id, e.target.value)}
-                            className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold focus:outline-none"
-                          >
-                            <option value="Not Started">Not Started</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Completed">Completed</option>
-                          </select>
-
-                          <button
-                            onClick={() => toggleTrackTopic(topic.id)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                              prog.is_tracked 
-                                ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' 
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-                            }`}
-                          >
-                            {prog.is_tracked ? 'Tracking' : 'Track'}
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {currentTab === 'settings' && (
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold">Backup & Settings</h2>
-                <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-4">
-                  <h3 className="font-semibold text-sm">Account Information</h3>
-                  <p className="text-xs text-slate-500">Email: {session.user.email}</p>
-                  <p className="text-xs text-slate-500">Account Type: {profile?.is_premium ? 'Premium (Unlimited)' : 'Free Plan (10 Active Limit)'}</p>
-                  {!profile?.is_premium && (
-                    <button
-                      onClick={() => setUpgradeModalOpen(true)}
-                      className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-xs font-semibold shadow-md"
-                    >
-                      Upgrade for ₦1,000
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-
-          </main>
+    <div className="app-wrapper">
+      {/* Professional Navy Header */}
+      <header className="app-header">
+        <div className="header-brand">
+          <h1>3rd MB Study Tracker</h1>
+          <p>Third MBBS Curriculum • UNTH</p>
         </div>
+        <button className="upgrade-btn" onClick={() => alert('Paystack Premium Integration Coming Up!')}>
+          👑 Upgrade ₦1,000
+        </button>
+      </header>
 
-        <MobileNav currentTab={currentTab} setCurrentTab={setCurrentTab} />
+      {/* Main Container */}
+      <main className="dashboard-container">
+        
+        {/* HOME / DASHBOARD VIEW */}
+        {activeTab === 'home' && (
+          <div>
+            {/* Welcome Card */}
+            <div className="welcome-card">
+              <h2>Welcome back, Doctor!</h2>
+              <p>Master all 490 official Third MBBS curriculum topics seamlessly across Block One (258) and Block Two (232).</p>
+            </div>
 
-        {upgradeModalOpen && (
-          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 max-w-md w-full p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-              <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 mx-auto">
-                <Crown className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-center">Unlock Unlimited Tracking</h3>
-              <p className="text-xs text-slate-500 text-center">
-                You have reached the Free limit of 10 active topics. Upgrade to Premium for a one-time fee of ₦1,000 to track all 490 official topics simultaneously with zero restrictions.
+            {/* Continue Study Section */}
+            <div className="continue-study-card">
+              <span className="continue-label">Continue Study</span>
+              <div className="continue-title">{continueTopic.title}</div>
+              <p style={{fontSize: '0.75rem', color: '#94A3B8', marginBottom: '12px'}}>
+                {continueTopic.block} • {continueTopic.department} ({continueTopic.code})
               </p>
-              <div className="pt-2 flex gap-3">
-                <button 
-                  onClick={() => setUpgradeModalOpen(false)}
-                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-xs"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={() => alert('Paystack checkout gateway initializing for ₦1,000...')}
-                  className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold text-xs shadow-md shadow-orange-500/20"
-                >
-                  Pay ₦1,000 Now
-                </button>
+              <button 
+                className="continue-btn"
+                onClick={() => setActiveTab(continueTopic.block === 'Block One' ? 'block1' : 'block2')}
+              >
+                Go to Topic →
+              </button>
+            </div>
+
+            {/* Overall Progress Card */}
+            <div className="progress-card">
+              <div className="progress-header">
+                <span className="progress-title">Overall Curriculum Progress</span>
+                <span className="progress-percentage">{overallPercentage}%</span>
               </div>
+              <div className="progress-bar-bg">
+                <div className="progress-bar-fill" style={{ width: `${overallPercentage}%` }}></div>
+              </div>
+              <div className="progress-stats-grid">
+                <div className="stat-box">
+                  <span className="stat-num" style={{color: '#059669'}}>{doneCount}</span>
+                  <span className="stat-label">Done</span>
+                </div>
+                <div className="stat-box">
+                  <span className="stat-num" style={{color: '#D97706'}}>{inProgressCount}</span>
+                  <span className="stat-label">In Progress</span>
+                </div>
+                <div className="stat-box">
+                  <span className="stat-num" style={{color: '#64748B'}}>{notStartedCount}</span>
+                  <span className="stat-label">Not Started</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Navigation Buttons */}
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '16px'}}>
+              <button 
+                onClick={() => setActiveTab('block1')} 
+                style={{padding: '14px', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', cursor: 'pointer'}}
+              >
+                📖 Block One (258 Topics)
+              </button>
+              <button 
+                onClick={() => setActiveTab('block2')} 
+                style={{padding: '14px', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', cursor: 'pointer'}}
+              >
+                📚 Block Two (232 Topics)
+              </button>
             </div>
           </div>
         )}
 
-      </div>
+        {/* CURRICULUM LIST VIEW (Block One / Block Two / Saved) */}
+        {activeTab !== 'home' && (
+          <div>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px'}}>
+              <h2 style={{fontSize: '1.2rem', fontWeight: '700'}}>
+                {activeTab === 'block1' && 'Block One Curriculum (258 Topics)'}
+                {activeTab === 'block2' && 'Block Two Curriculum (232 Topics)'}
+                {activeTab === 'saved' && 'Saved Topics'}
+              </h2>
+              <button 
+                onClick={() => setActiveTab('home')}
+                style={{background: 'none', border: 'none', color: '#00A896', fontWeight: '600', cursor: 'pointer'}}
+              >
+                ← Back to Home
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <input 
+              type="text" 
+              placeholder="Search by topic title or code..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '10px',
+                border: '1px solid #CBD5E1',
+                marginBottom: '14px',
+                fontSize: '0.9rem',
+                backgroundColor: 'white'
+              }}
+            />
+
+            {/* Topic Cards List */}
+            <div>
+              {filteredTopics.length === 0 ? (
+                <p style={{textAlign: 'center', color: '#64748B', padding: '30px'}}>No topics found matching your search.</p>
+              ) : (
+                filteredTopics.map(topic => {
+                  const currentStatus = userProgress[topic.id]?.status || 'Not Started';
+                  
+                  return (
+                    <div key={topic.id} className="topic-card">
+                      <div className="topic-meta">
+                        <span className="dept-badge">{topic.department}</span>
+                        <span className="topic-code">{topic.code}</span>
+                      </div>
+                      <div className="topic-name">{topic.title}</div>
+                      
+                      {/* Segmented Status Controls */}
+                      <div className="status-segments">
+                        <button 
+                          className={`status-segment-btn ${currentStatus === 'Not Started' ? 'active-not-started' : ''}`}
+                          onClick={() => handleStatusChange(topic.id, 'Not Started')}
+                        >
+                          Not Started
+                        </button>
+                        <button 
+                          className={`status-segment-btn ${currentStatus === 'In Progress' ? 'active-in-progress' : ''}`}
+                          onClick={() => handleStatusChange(topic.id, 'In Progress')}
+                        >
+                          In Progress
+                        </button>
+                        <button 
+                          className={`status-segment-btn ${currentStatus === 'Done' ? 'active-done' : ''}`}
+                          onClick={() => handleStatusChange(topic.id, 'Done')}
+                        >
+                          Done
+                        </button>
+                      </div>
+
+                      {/* Google Drive Folder Link Button */}
+                      {topic.driveUrl && (
+                        <a href={topic.driveUrl} target="_blank" rel="noopener noreferrer" className="drive-link-btn">
+                          📁 Open Class Drive Folder
+                        </a>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* Bottom Navigation Bar */}
+      <nav style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'white',
+        borderTop: '1px solid #E2E8F0',
+        display: 'flex',
+        justifyContent: 'space-around',
+        padding: '10px 0',
+        zIndex: 1000
+      }}>
+        <button 
+          onClick={() => setActiveTab('home')} 
+          style={{background: 'none', border: 'none', fontSize: '0.75rem', fontWeight: activeTab === 'home' ? '700' : '400', color: activeTab === 'home' ? '#00A896' : '#64748B', cursor: 'pointer'}}
+        >
+          🏠 Home
+        </button>
+        <button 
+          onClick={() => setActiveTab('block1')} 
+          style={{background: 'none', border: 'none', fontSize: '0.75rem', fontWeight: activeTab === 'block1' ? '700' : '400', color: activeTab === 'block1' ? '#00A896' : '#64748B', cursor: 'pointer'}}
+        >
+          📖 Block 1
+        </button>
+        <button 
+          onClick={() => setActiveTab('block2')} 
+          style={{background: 'none', border: 'none', fontSize: '0.75rem', fontWeight: activeTab === 'block2' ? '700' : '400', color: activeTab === 'block2' ? '#00A896' : '#64748B', cursor: 'pointer'}}
+        >
+          📚 Block 2
+        </button>
+      </nav>
     </div>
-  )
+  );
 }
