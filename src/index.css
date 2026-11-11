@@ -1,5 +1,5 @@
 /* ================================================================= */
-/* 3RD MB STUDY TRACKER - ULTRA-PREMIUM MODERN MEDICAL DESIGN SYSTEM */
+/* 3RD MB STUDY TRACKER - WORLD-CLASS MEDICAL DESIGN SYSTEM          */
 /* ================================================================= */
 
 :root {
@@ -21,6 +21,16 @@
   --radius-lg: 16px;
 }
 
+/* Dark Mode Overrides */
+body.dark-mode {
+  --bg-main: #090D16;
+  --card-bg: #111827;
+  --text-dark: #F8FAFC;
+  --text-muted: #94A3B8;
+  --border-light: #1F2937;
+  --teal-light: #064E3B;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -33,9 +43,9 @@ body {
   color: var(--text-dark);
   -webkit-tap-highlight-color: transparent;
   padding-bottom: 80px;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* App Wrapper */
 .app-wrapper {
   max-width: 768px;
   margin: 0 auto;
@@ -48,7 +58,7 @@ body {
 .app-header {
   background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy-surface) 100%);
   color: #FFFFFF;
-  padding: 18px 20px;
+  padding: 16px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -72,6 +82,22 @@ body {
   margin-top: 1px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
 .upgrade-btn {
   background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
   color: #FFFFFF;
@@ -82,20 +108,19 @@ body {
   font-size: 0.78rem;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
 .upgrade-btn:active {
   transform: scale(0.96);
 }
 
-/* Dashboard Container */
 .dashboard-container {
   padding: 16px;
   flex: 1;
 }
 
-/* Welcome Hero Card */
+/* Welcome Card */
 .welcome-card {
   background: linear-gradient(135deg, var(--navy-dark) 0%, #1E293B 100%);
   color: white;
@@ -107,23 +132,10 @@ body {
   overflow: hidden;
 }
 
-.welcome-card::after {
-  content: "";
-  position: absolute;
-  top: -30px;
-  right: -30px;
-  width: 120px;
-  height: 120px;
-  background: rgba(0, 168, 150, 0.15);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
 .welcome-card h2 {
   font-size: 1.3rem;
   font-weight: 800;
   margin-bottom: 6px;
-  letter-spacing: -0.3px;
 }
 
 .welcome-card p {
@@ -132,7 +144,7 @@ body {
   line-height: 1.45;
 }
 
-/* Widget Cards */
+/* Widgets */
 .widget-card {
   background: var(--card-bg);
   border: 1px solid var(--border-light);
@@ -142,7 +154,6 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-/* Continue Study Highlight Section */
 .continue-study-card {
   background: linear-gradient(135deg, #0F172A 0%, var(--navy-surface) 100%);
   border-left: 4px solid var(--teal-primary);
@@ -184,75 +195,36 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 4px 10px rgba(0, 168, 150, 0.3);
-  transition: background 0.2s ease;
 }
 
-.continue-btn:active {
-  background-color: var(--teal-accent);
-}
-
-/* Progress Section */
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.progress-title {
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: var(--text-dark);
-}
-
-.progress-percentage {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: var(--teal-primary);
-}
-
-.progress-bar-bg {
-  background-color: #F1F5F9;
-  height: 9px;
-  border-radius: 6px;
+/* Teaser Lock Overlay */
+.teaser-locked-overlay {
+  position: relative;
   overflow: hidden;
-  margin-bottom: 14px;
 }
 
-.progress-bar-fill {
-  background: linear-gradient(90deg, var(--teal-primary), var(--teal-accent));
-  height: 100%;
-  border-radius: 6px;
-  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+.teaser-blur {
+  filter: blur(4px);
+  user-select: none;
+  pointer-events: none;
+  opacity: 0.6;
 }
 
-.progress-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  text-align: center;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-light);
-}
-
-.stat-box {
-  padding: 6px 4px;
-  border-radius: var(--radius-sm);
-  background-color: #F8FAFC;
-}
-
-.stat-num {
-  font-size: 1rem;
+.teaser-lock-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(11, 19, 43, 0.92);
+  color: #F59E0B;
+  border: 1px solid #D97706;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.78rem;
   font-weight: 800;
-}
-
-.stat-label {
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  font-weight: 600;
-  margin-top: 2px;
-  display: block;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+  white-space: nowrap;
 }
 
 /* Topic Card */
@@ -263,7 +235,6 @@ body {
   padding: 14px;
   margin-bottom: 12px;
   box-shadow: var(--shadow-sm);
-  transition: border-color 0.2s ease;
 }
 
 .topic-meta {
@@ -281,7 +252,6 @@ body {
   padding: 4px 8px;
   border-radius: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
 }
 
 .topic-code {
@@ -298,10 +268,9 @@ body {
   line-height: 1.4;
 }
 
-/* Segmented Status Buttons */
 .status-segments {
   display: flex;
-  background-color: #F1F5F9;
+  background-color: var(--bg-main);
   border-radius: var(--radius-sm);
   padding: 3px;
   gap: 3px;
@@ -318,28 +287,23 @@ body {
   border-radius: 6px;
   cursor: pointer;
   text-align: center;
-  transition: all 0.2s ease;
 }
 
 .status-segment-btn.active-not-started {
-  background-color: #FFFFFF;
-  color: #475569;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  background-color: var(--card-bg);
+  color: var(--text-dark);
 }
 
 .status-segment-btn.active-in-progress {
   background-color: #FEF3C7;
   color: #D97706;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .status-segment-btn.active-done {
   background-color: #D1FAE5;
   color: #059669;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-/* Drive Folder Pill Button */
 .drive-link-btn {
   display: inline-flex;
   align-items: center;
@@ -352,10 +316,9 @@ body {
   padding: 7px 12px;
   border-radius: var(--radius-sm);
   margin-top: 10px;
-  border: 1px solid #DBEAFE;
 }
 
-/* Fixed Bottom Navigation Bar */
+/* Bottom Navigation */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -363,8 +326,7 @@ body {
   right: 0;
   max-width: 768px;
   margin: 0 auto;
-  background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  background-color: var(--card-bg);
   border-top: 1px solid var(--border-light);
   display: flex;
   justify-content: space-around;
@@ -382,5 +344,4 @@ body {
   align-items: center;
   gap: 3px;
   cursor: pointer;
-  transition: color 0.2s ease;
 }
