@@ -20,7 +20,6 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Dynamic Master Activation Code state
   const [masterCode, setMasterCode] = useState(() => {
     return localStorage.getItem('3rd_mb_master_code') || 'UNTH2026';
   });
@@ -34,18 +33,15 @@ export default function App() {
   const [copiedAccount, setCopiedAccount] = useState(false);
   const [adminTapCount, setAdminTapCount] = useState(0);
 
-  // Custom Topic Form State
   const [newTopicTitle, setNewTopicTitle] = useState('');
   const [newTopicDept, setNewTopicDept] = useState('Pharmacology');
   const [newTopicBlock, setNewTopicBlock] = useState('Block One');
 
-  // Pomodoro Timer State
   const [timerMinutes, setTimerMinutes] = useState(25);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timerMode, setTimerMode] = useState('study');
 
-  // Exam Target Date State (Default: 60 Days from today)
   const [targetExamDate, setTargetExamDate] = useState(() => {
     const future = new Date();
     future.setDate(future.getDate() + 60);
@@ -77,7 +73,6 @@ export default function App() {
     localStorage.setItem('3rd_mb_custom_topics', JSON.stringify(customTopics));
   }, [customTopics]);
 
-  // Pomodoro Timer Engine
   useEffect(() => {
     let interval = null;
     if (isTimerRunning) {
@@ -113,7 +108,6 @@ export default function App() {
     setTimeout(() => setCopiedAccount(false), 2000);
   };
 
-  // Secret Admin Portal Trigger (Tap subtitle 3 times)
   const handleAdminTap = () => {
     const count = adminTapCount + 1;
     setAdminTapCount(count);
@@ -132,7 +126,6 @@ export default function App() {
     }
   };
 
-  // Status Change & 10-Topic Free Paywall Enforcement
   const handleStatusChange = (topicId, status) => {
     const trackedCount = Object.values(userProgress).filter(p => p.status && p.status !== 'Not Started').length;
     const isCurrentlyTracked = userProgress[topicId]?.status && userProgress[topicId]?.status !== 'Not Started';
@@ -154,7 +147,6 @@ export default function App() {
     }));
   };
 
-  // Add Custom Topic Logic
   const handleAddCustomTopic = (e) => {
     e.preventDefault();
     if (!newTopicTitle.trim()) return;
@@ -181,7 +173,6 @@ export default function App() {
     alert('✨ Custom topic added successfully!');
   };
 
-  // Master Combined Syllabus
   const fullSyllabus = [...customTopics, ...OFFICIAL_SYLLABUS];
   const totalTopics = fullSyllabus.length;
   
@@ -194,7 +185,6 @@ export default function App() {
   const notStartedCount = totalTopics - (doneCount + inProgressCount);
   const overallPercentage = Math.round((doneCount / totalTopics) * 100) || 0;
 
-  // Exam Countdown & Pace Calculations
   const calcDaysRemaining = () => {
     const target = new Date(targetExamDate);
     const today = new Date();
@@ -244,7 +234,6 @@ export default function App() {
 
   return (
     <div className="app-wrapper">
-      {/* Header */}
       <header className="app-header">
         <div className="header-brand">
           <h1>3rd MB Study Tracker</h1>
@@ -266,7 +255,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* PALMPAY TRANSFER MODAL */}
       {showTransferModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -380,7 +368,6 @@ export default function App() {
         </div>
       )}
 
-      {/* CUSTOM TOPIC MODAL */}
       {showCustomModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -437,13 +424,9 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Dashboard */}
       <main className="dashboard-container">
-        
-        {/* HOME VIEW */}
         {activeTab === 'home' && (
           <div>
-            {/* Welcome Banner */}
             <div className="welcome-card">
               <h2>Welcome back, Doctor!</h2>
               <p>Master all {totalTopics} Third MBBS curriculum topics seamlessly across Block One and Block Two.</p>
@@ -454,7 +437,6 @@ export default function App() {
               )}
             </div>
 
-            {/* EXAM COUNTDOWN & PACE PREDICTOR WIDGET */}
             <div className="widget-card">
               <span className="continue-label" style={{ marginBottom: '8px' }}>📅 3rd MB Exam Date & Pace Countdown</span>
               
@@ -495,14 +477,12 @@ export default function App() {
               )}
             </div>
 
-            {/* FLEXIBLE POMODORO TIMER WIDGET */}
             <div className="widget-card" style={{ textAlign: 'center' }}>
               <span className="continue-label" style={{ justifyContent: 'center' }}>⏱️ Flexible Pomodoro Focus Timer</span>
               <div style={{ fontSize: '2.4rem', fontWeight: '800', color: 'var(--text-dark)', margin: '4px 0', letterSpacing: '-1px' }}>
                 {String(timerMinutes).padStart(2, '0')}:{String(timerSeconds).padStart(2, '0')}
               </div>
               
-              {/* Presets Row */}
               <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginBottom: '10px' }}>
                 <button onClick={() => resetTimer('study', 25)} style={{ background: 'var(--bg-main)', border: '1px solid var(--border-light)', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-dark)', cursor: 'pointer' }}>25m Study</button>
                 <button onClick={() => resetTimer('study', 45)} style={{ background: 'var(--bg-main)', border: '1px solid var(--border-light)', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-dark)', cursor: 'pointer' }}>45m Study</button>
@@ -519,7 +499,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Continue Study Highlight */}
             <div className="continue-study-card">
               <span className="continue-label">Continue Study</span>
               <div className="continue-title">{continueTopic.title}</div>
@@ -534,7 +513,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Overall Curriculum Progress Bar */}
             <div className="widget-card">
               <div className="progress-header">
                 <span className="progress-title">Overall Curriculum Completion</span>
@@ -559,7 +537,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Department Breakdown Overview */}
             <div className="widget-card">
               <span className="progress-title" style={{ display: 'block', marginBottom: '14px' }}>📊 Department Mastery Breakdown</span>
               {[
@@ -583,7 +560,6 @@ export default function App() {
           </div>
         )}
 
-        {/* CURRICULUM TOPICS VIEW */}
         {activeTab !== 'home' && (
           <div>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px'}}>
@@ -600,7 +576,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Department Filter Pills */}
             <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '12px' }}>
               {['All', 'Morbid Anatomy', 'Chemical Pathology', 'Medical Microbiology', 'Haematology', 'Pharmacology'].map(dept => (
                 <button
@@ -623,7 +598,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* Search Input Bar */}
             <input 
               type="text" 
               placeholder="Search by topic title or code..." 
@@ -642,7 +616,6 @@ export default function App() {
               }}
             />
 
-            {/* Topic Cards */}
             <div>
               {filteredTopics.length === 0 ? (
                 <p style={{textAlign: 'center', color: 'var(--text-muted)', padding: '40px 20px', fontWeight: '600'}}>No topics found matching your filter.</p>
@@ -661,7 +634,6 @@ export default function App() {
                         {topic.isCustom && <span style={{ marginLeft: '6px', fontSize: '0.65rem', background: '#E0F2FE', color: '#028090', padding: '2px 6px', borderRadius: '4px' }}>Custom</span>}
                       </div>
                       
-                      {/* Segmented Status Controls */}
                       <div className="status-segments">
                         <button 
                           className={`status-segment-btn ${currentStatus === 'Not Started' ? 'active-not-started' : ''}`}
@@ -683,7 +655,6 @@ export default function App() {
                         </button>
                       </div>
 
-                      {/* Google Drive Link Button */}
                       {topic.driveUrl && (
                         <a href={topic.driveUrl} target="_blank" rel="noopener noreferrer" className="drive-link-btn">
                           📁 Open Class Drive Folder
@@ -696,10 +667,8 @@ export default function App() {
             </div>
           </div>
         )}
-
       </main>
 
-      {/* Navigation */}
       <nav className="bottom-nav">
         <button 
           onClick={() => setActiveTab('home')} 
