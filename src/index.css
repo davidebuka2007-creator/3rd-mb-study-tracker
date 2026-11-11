@@ -1,5 +1,5 @@
 /* ================================================================= */
-/* 3RD MB STUDY TRACKER - M1/S1 INSPIRED PROFESSIONAL THEME          */
+/* 3RD MB STUDY TRACKER - PROFESSIONAL STYLING & PAYMENT MODAL       */
 /* ================================================================= */
 
 :root {
@@ -66,7 +66,7 @@ body {
   box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
 }
 
-/* Dashboard Cards & Layout */
+/* Dashboard Containers */
 .dashboard-container {
   padding: 16px;
   max-width: 800px;
@@ -92,7 +92,7 @@ body {
   font-size: 0.85rem;
   color: #94A3B8;
   line-height: 1.4;
-  margin-bottom: 16px;
+  margin-bottom: 6px;
 }
 
 /* Continue Study Section */
@@ -136,7 +136,7 @@ body {
   gap: 6px;
 }
 
-/* Progress Section & Percentage Bar */
+/* Progress Section */
 .progress-card {
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
@@ -205,7 +205,7 @@ body {
   color: var(--text-muted);
 }
 
-/* Topic Card & Segmented Controls */
+/* Topic Cards */
 .topic-card {
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
@@ -246,7 +246,7 @@ body {
   line-height: 1.35;
 }
 
-/* Segmented Status Pill Controls (Not Started | In Progress | Done) */
+/* Status Segmented Buttons */
 .status-segments {
   display: flex;
   background-color: var(--bg-light);
@@ -283,7 +283,6 @@ body {
   color: #059669;
 }
 
-/* Drive Folder Link Button */
 .drive-link-btn {
   display: inline-flex;
   align-items: center;
