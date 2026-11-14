@@ -12,7 +12,7 @@ export default function App() {
   });
 
   const [userName, setUserName] = useState(() => {
-    return localStorage.getItem('3rd_mb_user_name') || 'Okonkwo David Ebuka';
+    return localStorage.getItem('3rd_mb_user_name') || 'Doctor';
   });
 
   const [darkMode, setDarkMode] = useState(() => {
@@ -131,7 +131,7 @@ export default function App() {
     setAdminTapCount(count);
     if (count >= 3) {
       setAdminTapCount(0);
-      const password = prompt("🔐 Enter David's Secret Admin Password:");
+      const password = prompt("🔐 Enter Admin Password:");
       if (password === 'david2026') {
         const newCode = prompt(`Current Master Code is [${masterCode}]. Type a new active master code:`);
         if (newCode && newCode.trim()) {
@@ -168,7 +168,6 @@ export default function App() {
   const handleLinkClick = (topic) => {
     if (!topic.driveUrl) return;
 
-    const isFolder = topic.driveUrl.includes('/folders/');
     const trackedCount = Object.values(userProgress).filter(p => p.status && p.status !== 'Not Started').length;
     const currentStatus = userProgress[topic.id]?.status || 'Not Started';
 
@@ -178,8 +177,8 @@ export default function App() {
       return;
     }
 
-    // Direct PDF/File links automatically shift Not Started to In Progress
-    if (!isFolder && currentStatus === 'Not Started') {
+    // Clicking ANY Drive link (folder or file) automatically shifts Not Started to In Progress
+    if (currentStatus === 'Not Started') {
       handleStatusChange(topic.id, 'In Progress');
     }
 
@@ -360,7 +359,7 @@ export default function App() {
           <div style={{ backgroundColor: 'var(--card-bg)', padding: '24px', borderRadius: '18px', maxWidth: '380px', width: '100%', color: 'var(--text-dark)' }}>
             <h3 style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '10px' }}>💾 Backup & Data Recovery</h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: '1.4' }}>
-              Because progress is saved locally on your Android browser, export your JSON file regularly to ensure you never lose history when clearing cache or switching devices.
+              Export your JSON file regularly to ensure you never lose history when clearing cache or switching devices.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
@@ -431,7 +430,7 @@ export default function App() {
             </div>
 
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px', lineHeight: '1.4' }}>
-              Transfer <b>₦1,000</b> to the PalmPay account below, enter your doctor name, and click WhatsApp to activate your personalized greeting and unlimited curriculum!
+              Transfer <b>₦1,000</b> to the Palmpay account below, enter your doctor name, and click WhatsApp to activate your personalized greeting and unlimited curriculum!
             </p>
 
             <div style={{ background: 'var(--bg-main)', padding: '14px', borderRadius: '12px', marginBottom: '14px', border: '1px solid var(--border-light)' }}>
@@ -491,7 +490,7 @@ export default function App() {
 
               <button 
                 onClick={() => {
-                  const codeInput = prompt("Enter your activation code from David:")?.trim().toUpperCase();
+                  const codeInput = prompt("Enter your activation code:")?.trim().toUpperCase();
                   if (!codeInput) return;
 
                   if (codeInput === masterCode.toUpperCase()) {
@@ -500,7 +499,7 @@ export default function App() {
                     setShowTransferModal(false);
                     alert("✨ Premium features and personalized header unlocked successfully!");
                   } else {
-                    alert("❌ Invalid activation code. Please check your code on WhatsApp.");
+                    alert("❌ Invalid activation code.");
                   }
                 }}
                 style={{
@@ -859,7 +858,7 @@ export default function App() {
 
                       {topic.driveUrl && (
                         <button onClick={() => handleLinkClick(topic)} className="drive-link-btn" style={{ background: '#EFF6FF', color: '#2563EB', border: 'none', cursor: 'pointer', borderRadius: '8px', padding: '7px 12px', fontWeight: '700', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '10px' }}>
-                          📁 Open Google Drive Resource
+                          📁 Open Google Drive Resource Folder
                         </button>
                       )}
                     </div>
@@ -891,7 +890,7 @@ export default function App() {
         <button 
           onClick={() => setActiveTab('block2')} 
           className="nav-item-btn"
-          style={{ color: activeTab === 'block2' ? '#00A896' : 'var(--text-muted)' }}
+          style={{ color: activeTab === 'block2' ? '#00A896' : 'var::text-muted)' }}
         >
           <span>📚</span>
           <span>Block 2</span>
