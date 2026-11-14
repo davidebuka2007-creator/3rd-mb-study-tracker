@@ -144,12 +144,16 @@ export default function App() {
     }
   };
 
+  const fullSyllabus = [...customTopics, ...OFFICIAL_SYLLABUS];
+  const totalTopics = fullSyllabus.length;
+
+  const trackedCount = Object.values(userProgress).filter(p => p.status && p.status !== 'Not Started').length;
+
   const handleStatusChange = (topicId, status) => {
-    const trackedCount = Object.values(userProgress).filter(p => p.status && p.status !== 'Not Started').length;
     const isCurrentlyTracked = userProgress[topicId]?.status && userProgress[topicId]?.status !== 'Not Started';
 
     if (!isPremium && !isCurrentlyTracked && trackedCount >= 10 && status !== 'Not Started') {
-      alert('⚠️ Free Plan Limit Reached! You have used your 10 free tracked topics. Upgrade to Premium for ₦1,000 to unlock all topics!');
+      alert('⚠️ Free Plan Limit Reached! Free plan is limited to 10 tracked topics. Upgrade to Premium for ₦1,000 to unlock all topics!');
       setShowTransferModal(true);
       return;
     }
@@ -168,16 +172,14 @@ export default function App() {
   const handleLinkClick = (topic) => {
     if (!topic.driveUrl) return;
 
-    const trackedCount = Object.values(userProgress).filter(p => p.status && p.status !== 'Not Started').length;
     const currentStatus = userProgress[topic.id]?.status || 'Not Started';
 
     if (!isPremium && trackedCount >= 10 && currentStatus === 'Not Started') {
-      alert('⚠️ Free Plan Link Click Limit Reached (10 items). Upgrade to Premium for ₦1,000 to unlock all resources!');
+      alert('⚠️ Free Plan Limit Reached (10 items max). Upgrade to Premium for ₦1,000 to unlock all resources!');
       setShowTransferModal(true);
       return;
     }
 
-    // Clicking ANY Drive link (folder or file) automatically shifts Not Started to In Progress
     if (currentStatus === 'Not Started') {
       handleStatusChange(topic.id, 'In Progress');
     }
@@ -219,7 +221,6 @@ export default function App() {
     if (!confirmation) return;
 
     const updated = {};
-    const fullSyllabus = [...customTopics, ...OFFICIAL_SYLLABUS];
     fullSyllabus.forEach(t => {
       updated[t.id] = { status: targetStatus, lastUpdated: new Date().toISOString().split('T')[0] };
     });
@@ -267,9 +268,6 @@ export default function App() {
     }
   };
 
-  const fullSyllabus = [...customTopics, ...OFFICIAL_SYLLABUS];
-  const totalTopics = fullSyllabus.length;
-  
   const getStatusCount = (status) => {
     return fullSyllabus.filter(t => (userProgress[t.id]?.status || 'Not Started') === status).length;
   };
@@ -430,7 +428,7 @@ export default function App() {
             </div>
 
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px', lineHeight: '1.4' }}>
-              Transfer <b>₦1,000</b> to the Palmpay account below, enter your doctor name, and click WhatsApp to activate your personalized greeting and unlimited curriculum!
+              Transfer <b>₦1,000</b> to the Palmpay account below, enter your doctor name, and click WhatsApp to activate your personalized greeting and unlock all topics (free plan is limited to 10 topics)!
             </p>
 
             <div style={{ background: 'var(--bg-main)', padding: '14px', borderRadius: '12px', marginBottom: '14px', border: '1px solid var(--border-light)' }}>
@@ -617,6 +615,47 @@ export default function App() {
       <main className="dashboard-container">
         {activeTab === 'home' && (
           <div>
+            {/* Free Plan Notice Banner (Automatically disappears when Premium is active) */}
+            {!isPremium && (
+              <div style={{ 
+                background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)', 
+                border: '1px solid #FCD34D', 
+                padding: '14px 16px', 
+                borderRadius: '14px', 
+                marginBottom: '16px', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.15)'
+              }}>
+                <div>
+                  <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#92400E', display: 'block', marginBottom: '2px' }}>
+                    🔒 Free Plan Active ({trackedCount}/10 Topics Tracked)
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: '#78350F', lineHeight: '1.3', display: 'block' }}>
+                    The free plan is limited to 10 tracked topics. Upgrade to unlock all {totalTopics} topics!
+                  </span>
+                </div>
+                <button 
+                  onClick={() => setShowTransferModal(true)} 
+                  style={{ 
+                    background: '#D97706', 
+                    color: 'white', 
+                    border: 'none', 
+                    padding: '8px 12px', 
+                    borderRadius: '8px', 
+                    fontSize: '0.75rem', 
+                    fontWeight: '800', 
+                    cursor: 'pointer', 
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0 2px 6px rgba(217, 119, 6, 0.3)'
+                  }}
+                >
+                  Upgrade ₦1k
+                </button>
+              </div>
+            )}
+
             <div className="welcome-card">
               <h2>Welcome, Dr. {userName}!</h2>
               <p>Master all {totalTopics} Third MBBS curriculum topics seamlessly across Block One and Block Two with intelligent live velocity tracking.</p>
@@ -890,7 +929,7 @@ export default function App() {
         <button 
           onClick={() => setActiveTab('block2')} 
           className="nav-item-btn"
-          style={{ color: activeTab === 'block2' ? '#00A896' : 'var::text-muted)' }}
+          style={{ color: activeTab === 'block2' ? '#00A896' : 'var(--text-muted)' }}
         >
           <span>📚</span>
           <span>Block 2</span>
