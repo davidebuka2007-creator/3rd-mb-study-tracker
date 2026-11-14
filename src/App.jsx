@@ -340,9 +340,18 @@ export default function App() {
               👑 Upgrade ₦1,000
             </button>
           ) : (
-            <span style={{ fontSize: '0.72rem', background: '#059669', color: 'white', padding: '5px 10px', borderRadius: '6px', fontWeight: '800' }}>
-              ✨ Premium Active
-            </span>
+            <button 
+              onClick={() => {
+                const updatedName = prompt("Enter your Doctor Name:", userName === 'Doctor' ? '' : userName);
+                if (updatedName && updatedName.trim()) {
+                  setUserName(updatedName.trim());
+                }
+              }}
+              title="Tap to edit your name"
+              style={{ fontSize: '0.72rem', background: '#059669', color: 'white', padding: '5px 10px', borderRadius: '6px', fontWeight: '800', border: 'none', cursor: 'pointer' }}
+            >
+              ✏️ Dr. {userName}
+            </button>
           )}
         </div>
       </header>
