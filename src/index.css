@@ -1,5 +1,5 @@
 /* ================================================================= */
-/* 3RD MB STUDY TRACKER - 9.5/10 SLEEK MOBILE-RESPONSIVE DESIGN      */
+/* 3RD MB STUDY TRACKER - 10/10 SLEEK MOBILE-RESPONSIVE DESIGN      */
 /* ================================================================= */
 
 :root {
@@ -79,8 +79,8 @@ body {
 
 .header-brand p {
   font-size: 0.72rem;
-  color: #94A3B8;
-  font-weight: 600;
+  color: #34D399;
+  font-weight: 700;
   margin-top: 2px;
   cursor: pointer;
   user-select: none;
@@ -195,7 +195,7 @@ body {
   box-shadow: 0 4px 12px rgba(0, 168, 150, 0.3);
 }
 
-/* Progress Section (Fully Mobile Optimized) */
+/* Progress Section */
 .progress-header {
   display: flex;
   justify-content: space-between;
@@ -372,20 +372,6 @@ body {
   background-color: #D1FAE5;
   color: #059669;
   box-shadow: var(--shadow-sm);
-}
-
-.drive-link-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: #EFF6FF;
-  color: #2563EB;
-  text-decoration: none;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 7px 12px;
-  border-radius: var(--radius-sm);
-  margin-top: 10px;
 }
 
 /* Bottom Navigation */
