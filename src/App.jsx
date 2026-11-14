@@ -11,6 +11,10 @@ export default function App() {
     return localStorage.getItem('3rd_mb_is_premium') === 'true';
   });
 
+  const [userName, setUserName] = useState(() => {
+    return localStorage.getItem('3rd_mb_user_name') || 'Okonkwo David Ebuka';
+  });
+
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('3rd_mb_theme') === 'dark';
   });
@@ -29,13 +33,17 @@ export default function App() {
   const [selectedDept, setSelectedDept] = useState('All');
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [showBackupModal, setShowBackupModal] = useState(false);
   const [payerName, setPayerName] = useState('');
   const [copiedAccount, setCopiedAccount] = useState(false);
   const [adminTapCount, setAdminTapCount] = useState(0);
 
   const [newTopicTitle, setNewTopicTitle] = useState('');
   const [newTopicDept, setNewTopicDept] = useState('Pharmacology');
+  const [newTopicSubDept, setNewTopicSubDept] = useState('General Pathology');
   const [newTopicBlock, setNewTopicBlock] = useState('Block One');
+  const [newTopicUrl, setNewTopicUrl] = useState('');
 
   const [timerMinutes, setTimerMinutes] = useState(25);
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -43,6 +51,8 @@ export default function App() {
   const [timerMode, setTimerMode] = useState('study');
 
   const [targetExamDate, setTargetExamDate] = useState(() => {
+    const savedDate = localStorage.getItem('3rd_mb_exam_date');
+    if (savedDate) return savedDate;
     const future = new Date();
     future.setDate(future.getDate() + 60);
     return future.toISOString().split('T')[0];
@@ -57,8 +67,16 @@ export default function App() {
   }, [isPremium]);
 
   useEffect(() => {
+    localStorage.setItem('3rd_mb_user_name', userName);
+  }, [userName]);
+
+  useEffect(() => {
     localStorage.setItem('3rd_mb_master_code', masterCode);
   }, [masterCode]);
+
+  useEffect(() => {
+    localStorage.setItem('3rd_mb_exam_date', targetExamDate);
+  }, [targetExamDate]);
 
   useEffect(() => {
     localStorage.setItem('3rd_mb_theme', darkMode ? 'dark' : 'light');
@@ -131,7 +149,7 @@ export default function App() {
     const isCurrentlyTracked = userProgress[topicId]?.status && userProgress[topicId]?.status !== 'Not Started';
 
     if (!isPremium && !isCurrentlyTracked && trackedCount >= 10 && status !== 'Not Started') {
-      alert('⚠️ Free Plan Limit Reached! You have used your 10 free tracked topics. Upgrade to Premium for ₦1,000 to unlock all 490 topics!');
+      alert('⚠️ Free Plan Limit Reached! You have used your 10 free tracked topics. Upgrade to Premium for ₦1,000 to unlock all topics!');
       setShowTransferModal(true);
       return;
     }
@@ -145,6 +163,27 @@ export default function App() {
         lastUpdated: today
       }
     }));
+  };
+
+  const handleLinkClick = (topic) => {
+    if (!topic.driveUrl) return;
+
+    const isFolder = topic.driveUrl.includes('/folders/');
+    const trackedCount = Object.values(userProgress).filter(p => p.status && p.status !== 'Not Started').length;
+    const currentStatus = userProgress[topic.id]?.status || 'Not Started';
+
+    if (!isPremium && trackedCount >= 10 && currentStatus === 'Not Started') {
+      alert('⚠️ Free Plan Link Click Limit Reached (10 items). Upgrade to Premium for ₦1,000 to unlock all resources!');
+      setShowTransferModal(true);
+      return;
+    }
+
+    // Direct PDF/File links automatically shift Not Started to In Progress
+    if (!isFolder && currentStatus === 'Not Started') {
+      handleStatusChange(topic.id, 'In Progress');
+    }
+
+    window.open(topic.driveUrl, '_blank');
   };
 
   const handleAddCustomTopic = (e) => {
@@ -162,15 +201,71 @@ export default function App() {
       id: Date.now(),
       title: newTopicTitle,
       department: newTopicDept,
+      subDept: newTopicDept === 'Morbid Anatomy' ? newTopicSubDept : 'General',
       block: newTopicBlock,
       code: 'CUSTOM',
+      driveUrl: newTopicUrl.trim() || '',
       isCustom: true
     };
 
     setCustomTopics(prev => [newTopic, ...prev]);
     setNewTopicTitle('');
+    setNewTopicUrl('');
     setShowCustomModal(false);
     alert('✨ Custom topic added successfully!');
+  };
+
+  const handleResetAll = (targetStatus) => {
+    const confirmation = window.confirm(`Are you sure you want to reset all topic progress to "${targetStatus}"?`);
+    if (!confirmation) return;
+
+    const updated = {};
+    const fullSyllabus = [...customTopics, ...OFFICIAL_SYLLABUS];
+    fullSyllabus.forEach(t => {
+      updated[t.id] = { status: targetStatus, lastUpdated: new Date().toISOString().split('T')[0] };
+    });
+    setUserProgress(updated);
+    setShowResetModal(false);
+    alert(`✨ All topics reset to "${targetStatus}" successfully!`);
+  };
+
+  const exportBackupJSON = () => {
+    const backupData = {
+      userProgress,
+      customTopics,
+      userName,
+      isPremium,
+      targetExamDate,
+      exportDate: new Date().toISOString()
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `3rd_mb_tracker_backup_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const importBackupJSON = (e) => {
+    const fileReader = new FileReader();
+    if (e.target.files[0]) {
+      fileReader.readAsText(e.target.files[0], "UTF-8");
+      fileReader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (parsed.userProgress) setUserProgress(parsed.userProgress);
+          if (parsed.customTopics) setCustomTopics(parsed.customTopics);
+          if (parsed.userName) setUserName(parsed.userName);
+          if (parsed.isPremium !== undefined) setIsPremium(parsed.isPremium);
+          if (parsed.targetExamDate) setTargetExamDate(parsed.targetExamDate);
+          alert("✨ Progress history successfully restored from backup file!");
+          setShowBackupModal(false);
+        } catch (err) {
+          alert("❌ Invalid backup JSON file format.");
+        }
+      };
+    }
   };
 
   const fullSyllabus = [...customTopics, ...OFFICIAL_SYLLABUS];
@@ -237,10 +332,10 @@ export default function App() {
       <header className="app-header">
         <div className="header-brand">
           <h1>3rd MB Study Tracker</h1>
-          <p onClick={handleAdminTap}>Third MBBS Curriculum • UNTH</p>
+          <p onClick={handleAdminTap}>Welcome, Dr. {userName} • UNTH</p>
         </div>
         <div className="header-actions">
-          <button className="theme-toggle-btn" onClick={() => setDarkMode(!darkMode)}>
+          <button className="theme-toggle-btn" onClick={() => setDarkMode(!darkMode)} title="Toggle Theme">
             {darkMode ? '☀️' : '🌙'}
           </button>
           {!isPremium ? (
@@ -255,6 +350,67 @@ export default function App() {
         </div>
       </header>
 
+      {/* Backup & Recovery Modal */}
+      {showBackupModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(7, 13, 30, 0.88)', backdropFilter: 'blur(6px)', zIndex: 2000,
+          display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px'
+        }}>
+          <div style={{ backgroundColor: 'var(--card-bg)', padding: '24px', borderRadius: '18px', maxWidth: '380px', width: '100%', color: 'var(--text-dark)' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '10px' }}>💾 Backup & Data Recovery</h3>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: '1.4' }}>
+              Because progress is saved locally on your Android browser, export your JSON file regularly to ensure you never lose history when clearing cache or switching devices.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+              <button onClick={exportBackupJSON} style={{ background: '#028090', color: 'white', border: 'none', padding: '11px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}>
+                📥 Export Progress JSON
+              </button>
+              
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', display: 'block', marginBottom: '4px' }}>📤 Import JSON Backup:</label>
+                <input type="file" accept=".json" onChange={importBackupJSON} style={{ fontSize: '0.75rem', width: '100%' }} />
+              </div>
+            </div>
+
+            <button onClick={() => setShowBackupModal(false)} style={{ width: '100%', background: 'var(--bg-main)', border: '1px solid var(--border-light)', padding: '10px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Dual Reset Modal */}
+      {showResetModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(7, 13, 30, 0.88)', backdropFilter: 'blur(6px)', zIndex: 2000,
+          display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px'
+        }}>
+          <div style={{ backgroundColor: 'var(--card-bg)', padding: '24px', borderRadius: '18px', maxWidth: '380px', width: '100%', color: 'var(--text-dark)' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '10px' }}>🔄 Curriculum Reset Options</h3>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: '1.4' }}>
+              Choose how you would like to reset your study curriculum progress across all topics:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+              <button onClick={() => handleResetAll('Not Started')} style={{ background: '#64748B', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}>
+                Reset All to Not Started
+              </button>
+              <button onClick={() => handleResetAll('In Progress')} style={{ background: '#D97706', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}>
+                Reset All to In Progress
+              </button>
+            </div>
+
+            <button onClick={() => setShowResetModal(false)} style={{ width: '100%', background: 'var(--bg-main)', border: '1px solid var(--border-light)', padding: '10px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Transfer / Premium Modal */}
       {showTransferModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -267,7 +423,7 @@ export default function App() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--text-dark)' }}>
-                💳 Instant PalmPay Transfer
+                👑 Unlock Premium Access
               </h3>
               <span style={{ background: '#FEF3C7', color: '#D97706', fontSize: '0.7rem', fontWeight: '800', padding: '3px 8px', borderRadius: '6px' }}>
                 ₦1,000 ONE-TIME
@@ -275,7 +431,7 @@ export default function App() {
             </div>
 
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px', lineHeight: '1.4' }}>
-              Transfer <b>₦1,000</b> to the PalmPay account below, enter your name, and click WhatsApp to send proof for your activation code!
+              Transfer <b>₦1,000</b> to the PalmPay account below, enter your doctor name, and click WhatsApp to activate your personalized greeting and unlimited curriculum!
             </p>
 
             <div style={{ background: 'var(--bg-main)', padding: '14px', borderRadius: '12px', marginBottom: '14px', border: '1px solid var(--border-light)' }}>
@@ -305,7 +461,7 @@ export default function App() {
 
             <div style={{ marginBottom: '14px' }}>
               <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Your Name / Student ID:
+                Your Doctor Name (for Welcome Header):
               </label>
               <input 
                 type="text" 
@@ -321,7 +477,7 @@ export default function App() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <a 
-                href={`https://wa.me/2348106624261?text=${encodeURIComponent(`Hello David, I have completed my ₦1,000 transfer to your Palmpay account for 3rd MB Study Tracker. Name: ${payerName || 'Student'}. Please send my activation code!`)}`}
+                href={`https://wa.me/2348106624261?text=${encodeURIComponent(`Hello David, I have completed my ₦1,000 transfer to your Palmpay account for 3rd MB Study Tracker. Name: Dr. ${payerName || 'Doctor'}. Please send my activation code!`)}`}
                 target="_blank" 
                 rel="noopener noreferrer"
                 style={{
@@ -340,8 +496,9 @@ export default function App() {
 
                   if (codeInput === masterCode.toUpperCase()) {
                     setIsPremium(true);
+                    if (payerName.trim()) setUserName(payerName.trim());
                     setShowTransferModal(false);
-                    alert("✨ Premium features unlocked successfully!");
+                    alert("✨ Premium features and personalized header unlocked successfully!");
                   } else {
                     alert("❌ Invalid activation code. Please check your code on WhatsApp.");
                   }
@@ -356,10 +513,7 @@ export default function App() {
 
               <button 
                 onClick={() => setShowTransferModal(false)}
-                style={{
-                  background: 'none', border: 'none', color: 'var(--text-muted)', padding: '6px',
-                  fontWeight: '600', cursor: 'pointer', fontSize: '0.75rem'
-                }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.75rem' }}
               >
                 Cancel
               </button>
@@ -368,6 +522,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Advanced Custom Topic Modal */}
       {showCustomModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -376,36 +531,25 @@ export default function App() {
         }}>
           <div style={{
             backgroundColor: 'var(--card-bg)', padding: '24px', borderRadius: '18px',
-            maxWidth: '380px', width: '100%', color: 'var(--text-dark)'
+            maxWidth: '380px', width: '100%', color: 'var(--text-dark)', boxShadow: '0 20px 40px rgba(0,0,0,0.35)'
           }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: '800', marginBottom: '12px' }}>➕ Add Custom Topic</h3>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: '800', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              ✨ Add Advanced Custom Topic
+            </h3>
             <form onSubmit={handleAddCustomTopic}>
-              <div style={{ marginBottom: '12px' }}>
+              <div style={{ marginBottom: '10px' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Topic Title:</label>
                 <input 
                   type="text" 
-                  placeholder="e.g. Special Seminar Notes on Malaria"
+                  placeholder="e.g. Advanced Pathology Seminar Notes"
                   value={newTopicTitle}
                   onChange={(e) => setNewTopicTitle(e.target.value)}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-main)', color: 'var(--text-dark)' }}
                 />
               </div>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Department:</label>
-                <select 
-                  value={newTopicDept} 
-                  onChange={(e) => setNewTopicDept(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-main)', color: 'var(--text-dark)' }}
-                >
-                  <option value="Pharmacology">Pharmacology</option>
-                  <option value="Morbid Anatomy">Morbid Anatomy</option>
-                  <option value="Chemical Pathology">Chemical Pathology</option>
-                  <option value="Medical Microbiology">Medical Microbiology</option>
-                  <option value="Haematology">Haematology</option>
-                </select>
-              </div>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Block:</label>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Curriculum Block:</label>
                 <select 
                   value={newTopicBlock} 
                   onChange={(e) => setNewTopicBlock(e.target.value)}
@@ -415,9 +559,56 @@ export default function App() {
                   <option value="Block Two">Block Two</option>
                 </select>
               </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Subject / Department:</label>
+                <select 
+                  value={newTopicDept} 
+                  onChange={(e) => setNewTopicDept(e.target.value)}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-main)', color: 'var(--text-dark)' }}
+                >
+                  <option value="Morbid Anatomy">Morbid Anatomy</option>
+                  <option value="Chemical Pathology">Chemical Pathology</option>
+                  <option value="Medical Microbiology">Medical Microbiology</option>
+                  <option value="Haematology">Haematology</option>
+                  <option value="Pharmacology">Pharmacology</option>
+                </select>
+              </div>
+
+              {newTopicDept === 'Morbid Anatomy' && (
+                <div style={{ marginBottom: '10px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Pathology Sub-Subject:</label>
+                  <select 
+                    value={newTopicSubDept} 
+                    onChange={(e) => setNewTopicSubDept(e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-main)', color: 'var(--text-dark)' }}
+                  >
+                    <option value="General Pathology">General Pathology</option>
+                    <option value="Systemic Pathology">Systemic Pathology</option>
+                    <option value="Histopathology Techniques">Histopathology Techniques</option>
+                    <option value="Forensic Pathology">Forensic Pathology</option>
+                  </select>
+                </div>
+              )}
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Google Drive Link (Optional):</label>
+                <input 
+                  type="text" 
+                  placeholder="https://drive.google.com/..."
+                  value={newTopicUrl}
+                  onChange={(e) => setNewTopicUrl(e.target.value)}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-main)', color: 'var(--text-dark)' }}
+                />
+              </div>
+
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button type="submit" style={{ flex: 1, background: 'var(--teal-primary)', color: 'white', padding: '10px', border: 'none', borderRadius: '8px', fontWeight: '700' }}>Save Topic</button>
-                <button type="button" onClick={() => setShowCustomModal(false)} style={{ background: 'var(--bg-main)', border: '1px solid var(--border-light)', padding: '10px', borderRadius: '8px', color: 'var(--text-dark)' }}>Cancel</button>
+                <button type="submit" style={{ flex: 1, background: 'var(--teal-primary)', color: 'white', padding: '11px', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}>
+                  Add Topic ✨
+                </button>
+                <button type="button" onClick={() => setShowCustomModal(false)} style={{ background: 'var(--bg-main)', border: '1px solid var(--border-light)', padding: '11px', borderRadius: '8px', color: 'var(--text-dark)', fontWeight: '700', cursor: 'pointer' }}>
+                  Cancel
+                </button>
               </div>
             </form>
           </div>
@@ -428,17 +619,22 @@ export default function App() {
         {activeTab === 'home' && (
           <div>
             <div className="welcome-card">
-              <h2>Welcome back, Doctor!</h2>
-              <p>Master all {totalTopics} Third MBBS curriculum topics seamlessly across Block One and Block Two.</p>
-              {isPremium ? (
-                <p style={{ color: '#34D399', fontWeight: '700', marginTop: '8px', fontSize: '0.8rem' }}>✓ Full Unlimited Access Unlocked</p>
-              ) : (
-                <p style={{ color: '#FBBF24', fontWeight: '700', marginTop: '8px', fontSize: '0.8rem' }}>⚡ Free Plan: 10 Tracked Topics Allowed</p>
-              )}
+              <h2>Welcome, Dr. {userName}!</h2>
+              <p>Master all {totalTopics} Third MBBS curriculum topics seamlessly across Block One and Block Two with intelligent live velocity tracking.</p>
+              
+              <div style={{ display: 'flex', gap: '8px', marginTop: '14px', flexWrap: 'wrap' }}>
+                <button onClick={() => setShowResetModal(true)} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '6px 12px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer' }}>
+                  🔄 Reset Progress
+                </button>
+                <button onClick={() => setShowBackupModal(true)} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '6px 12px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer' }}>
+                  💾 Backup & Restore
+                </button>
+              </div>
             </div>
 
+            {/* Exam Velocity & Countdown Widget */}
             <div className="widget-card">
-              <span className="continue-label" style={{ marginBottom: '8px' }}>📅 3rd MB Exam Date & Pace Countdown</span>
+              <span className="continue-label" style={{ marginBottom: '8px' }}>📅 3rd MB Exam Date & Active Velocity</span>
               
               {!isPremium ? (
                 <div className="teaser-locked-overlay">
@@ -450,7 +646,7 @@ export default function App() {
                     <div className="progress-bar-bg"><div className="progress-bar-fill" style={{ width: '45%' }}></div></div>
                   </div>
                   <button className="teaser-lock-badge" onClick={() => setShowTransferModal(true)}>
-                    🔒 Unlock Exam Pace Predictor (₦1,000)
+                    🔒 Unlock Live Exam Velocity (₦1,000)
                   </button>
                 </div>
               ) : (
@@ -471,19 +667,20 @@ export default function App() {
                     </div>
                   </div>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    ⏳ <b>{examDaysLeft} Days Remaining</b> to cover your <b>{remainingTopics} remaining topics</b>!
+                    ⏳ <b>{examDaysLeft} Days Remaining</b> calculated dynamically across your <b>{remainingTopics} remaining uncompleted topics</b>!
                   </p>
                 </div>
               )}
             </div>
 
+            {/* Pomodoro Timer */}
             <div className="widget-card" style={{ textAlign: 'center' }}>
               <span className="continue-label" style={{ justifyContent: 'center' }}>⏱️ Flexible Pomodoro Focus Timer</span>
               <div style={{ fontSize: '2.4rem', fontWeight: '800', color: 'var(--text-dark)', margin: '4px 0', letterSpacing: '-1px' }}>
                 {String(timerMinutes).padStart(2, '0')}:{String(timerSeconds).padStart(2, '0')}
               </div>
               
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
                 <button onClick={() => resetTimer('study', 25)} style={{ background: 'var(--bg-main)', border: '1px solid var(--border-light)', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-dark)', cursor: 'pointer' }}>25m Study</button>
                 <button onClick={() => resetTimer('study', 45)} style={{ background: 'var(--bg-main)', border: '1px solid var(--border-light)', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-dark)', cursor: 'pointer' }}>45m Study</button>
                 <button onClick={() => resetTimer('study', 60)} style={{ background: 'var(--bg-main)', border: '1px solid var(--border-light)', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-dark)', cursor: 'pointer' }}>60m Study</button>
@@ -570,9 +767,14 @@ export default function App() {
               
               <button 
                 onClick={() => setShowCustomModal(true)}
-                style={{ background: '#00A896', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer' }}
+                style={{
+                  background: 'linear-gradient(135deg, #00A896 0%, #028090 100%)',
+                  color: 'white', border: 'none', padding: '8px 14px', borderRadius: '10px',
+                  fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0, 168, 150, 0.35)', display: 'flex', alignItems: 'center', gap: '4px'
+                }}
               >
-                ➕ Add Topic
+                ✨ Add Custom Topic
               </button>
             </div>
 
@@ -656,9 +858,9 @@ export default function App() {
                       </div>
 
                       {topic.driveUrl && (
-                        <a href={topic.driveUrl} target="_blank" rel="noopener noreferrer" className="drive-link-btn">
-                          📁 Open Class Drive Folder
-                        </a>
+                        <button onClick={() => handleLinkClick(topic)} className="drive-link-btn" style={{ background: '#EFF6FF', color: '#2563EB', border: 'none', cursor: 'pointer', borderRadius: '8px', padding: '7px 12px', fontWeight: '700', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '10px' }}>
+                          📁 Open Google Drive Resource
+                        </button>
                       )}
                     </div>
                   );
