@@ -25,7 +25,7 @@ export default function App() {
   });
 
   const [masterCode, setMasterCode] = useState(() => {
-    return localStorage.getItem('3rd_mb_master_code') || 'UNTH2026';
+    return localStorage.getItem('3rd_mb_master_code') || 'DAVECH';
   });
 
   const [activeTab, setActiveTab] = useState('home');
